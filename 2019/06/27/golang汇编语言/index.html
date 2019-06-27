@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  Go汇编语言快速指导Go汇编语言不是常见的汇编格式，它是Go编译器专用的。本文对其进行了简要的介绍，并不是全面文档。 Go汇编语言基于Plan9汇编语言的输入风格设计，后者的详细描述在这里。本文讲述了Go汇编语法的摘要，以及一些和Plan9汇编的不同，还描述了Go汇编与Go语言交互时所适用的特性。 关于Go汇编程序最重要的一点是，它并不是底层机">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang汇编语言">
+<meta property="og:url" content="http://www.huamo.online/2019/06/27/golang汇编语言/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  Go汇编语言快速指导Go汇编语言不是常见的汇编格式，它是Go编译器专用的。本文对其进行了简要的介绍，并不是全面文档。 Go汇编语言基于Plan9汇编语言的输入风格设计，后者的详细描述在这里。本文讲述了Go汇编语法的摘要，以及一些和Plan9汇编的不同，还描述了Go汇编与Go语言交互时所适用的特性。 关于Go汇编程序最重要的一点是，它并不是底层机">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-27T07:36:32.092Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="golang汇编语言">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  Go汇编语言快速指导Go汇编语言不是常见的汇编格式，它是Go编译器专用的。本文对其进行了简要的介绍，并不是全面文档。 Go汇编语言基于Plan9汇编语言的输入风格设计，后者的详细描述在这里。本文讲述了Go汇编语法的摘要，以及一些和Plan9汇编的不同，还描述了Go汇编与Go语言交互时所适用的特性。 关于Go汇编程序最重要的一点是，它并不是底层机">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2019/06/27/golang汇编语言/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>golang汇编语言 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2019/06/27/golang汇编语言/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">golang汇编语言
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-06-27 15:34:35 / 修改时间：15:36:32" itemprop="dateCreated datePublished" datetime="2019-06-27T15:34:35+08:00">2019-06-27</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h1 id="Go汇编语言快速指导"><a href="#Go汇编语言快速指导" class="headerlink" title="Go汇编语言快速指导"></a>Go汇编语言快速指导</h1><p>Go汇编语言不是常见的汇编格式，它是Go编译器专用的。本文对其进行了简要的介绍，并不是全面文档。</p>
+<p>Go汇编语言基于Plan9汇编语言的输入风格设计，后者的详细描述在<a href="https://9p.io/sys/doc/asm.html" target="_blank" rel="noopener">这里</a>。本文讲述了Go汇编语法的摘要，以及一些和Plan9汇编的不同，还描述了Go汇编与Go语言交互时所适用的特性。</p>
+<p>关于Go汇编程序最重要的一点是，它并不是底层机器码的直接表达。有一些细节精确映射了机器层面，而有些并没有。<a id="more"></a>这是因为编译器套件（在这里有<a href="https://9p.io/sys/doc/compiler.html" target="_blank" rel="noopener">介绍</a>）在普通管道中并不需要传递汇编程序。取而代之的，编译器是在一种半抽象指令集上工作，并且在代码生成之后还会发生部分的指令选择。所以当你看到一个像<code>MOV</code>这样的指令时，背后的工具链实际为这个操作生成的指令也许根本不是移动指令，有可能是<code>clear</code>或者<code>load</code>，也有可能它就直接对应机器指令相同的名字。一般来说，特定于机器的操作往往表里如一，而更通用的概念，例如内存移动和子程序调用以及返回则偏向于抽象指令。细节因机器架构而异，没有明确的定义。</p>
+<p>汇编程序会将半抽象的指令集描述解析为待输入到链接器的指令。如果你想看看给定架构上的汇编指令是什么样子，例如<code>amd64</code>，在标准库源码里就有很多这样的例子。例如<code>runtime</code>和<code>math/big</code>。除了这里，你还可以自己实验编译器发射出的汇编代码（实际输出可能和这里展示的不一样）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">$ cat x.go</span><br><span class="line">package main</span><br><span class="line"></span><br><span class="line">func <span class="function"><span class="title">main</span></span>() &#123;</span><br><span class="line">	println(3)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">$ GOOS=linux GOARCH=amd64 go tool compile -S x.go <span class="comment"># or: go build -gcflags -S x.go</span></span><br><span class="line"><span class="string">""</span>.main STEXT size=74 args=0x0 locals=0x10</span><br><span class="line">	0x0000 00000 (x.go:3)	TEXT	<span class="string">""</span>.main(SB), ABIInternal, <span class="variable">$16</span>-0</span><br><span class="line">	0x0000 00000 (x.go:3)	MOVQ	(TLS), CX</span><br><span class="line">	0x0009 00009 (x.go:3)	CMPQ	SP, 16(CX)</span><br><span class="line">	0x000d 00013 (x.go:3)	JLS	67</span><br><span class="line">	0x000f 00015 (x.go:3)	SUBQ	<span class="variable">$16</span>, SP</span><br><span class="line">	0x0013 00019 (x.go:3)	MOVQ	BP, 8(SP)</span><br><span class="line">	0x0018 00024 (x.go:3)	LEAQ	8(SP), BP</span><br><span class="line">	0x001d 00029 (x.go:3)	FUNCDATA	<span class="variable">$0</span>, gclocals·33cdeccccebe80329f1fdbee7f5874cb(SB)</span><br><span class="line">	0x001d 00029 (x.go:3)	FUNCDATA	<span class="variable">$1</span>, gclocals·33cdeccccebe80329f1fdbee7f5874cb(SB)</span><br><span class="line">	0x001d 00029 (x.go:3)	FUNCDATA	<span class="variable">$3</span>, gclocals·33cdeccccebe80329f1fdbee7f5874cb(SB)</span><br><span class="line">	0x001d 00029 (x.go:4)	PCDATA	<span class="variable">$2</span>, <span class="variable">$0</span></span><br><span class="line">	0x001d 00029 (x.go:4)	PCDATA	<span class="variable">$0</span>, <span class="variable">$0</span></span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p><code>FUNCDATA</code>和<code>PCDATA</code>指令包含了垃圾回收器需要用到的信息，编译器会专门介绍它们。</p>
+<h1 id="常量"><a href="#常量" class="headerlink" title="常量"></a>常量</h1><p>在常量计算上，Go汇编和Plan9汇编有所不同。<strong>Go汇编的常量表达式依据Go语言的<a href="https://golang.org/ref/spec#Operators" target="_blank" rel="noopener">运算符优先级</a>计算，而不是原始的那种类C的优先级标准。</strong> 因此<code>3&amp;1&lt;&lt;2</code>结果是4而不是0，因为它被解析为<code>(3&amp;1)&lt;&lt;2</code>而不是<code>3&amp;(1&lt;&lt;2)</code>。而且，<strong>常量总是被当做64位无符号整数计算。</strong>因此<code>-2</code>不是整型值减2，而是相同位编排的无符号64位整型。这些不同无关紧要，但为了避免模糊不清，如果右操作数的高位已经被设置，那么除法或右移操作是会被拒绝的。</p>
+<h1 id="符号"><a href="#符号" class="headerlink" title="符号"></a>符号</h1><p>有些符号，例如<code>R1</code>或<code>LR</code>，都是提前定义好并代表了寄存器。其确定的集合依赖机器架构。</p>
+<p>有4个预定义好的符号指向了伪寄存器。它们并不是真正的寄存器，而是由工具链维护的虚拟寄存器，例如帧指针。伪寄存器集合对于所有的架构都是一样的：</p>
+<ul>
+<li><p><code>FP</code>：帧指针：指示参数和本地变量</p>
+</li>
+<li><p><code>PC</code>：程序计数器：跳转和分支</p>
+</li>
+<li><p><code>SB</code>：静态基指针：指示全局符号</p>
+</li>
+<li><p><code>SP</code>：栈指针：总是标识栈顶</p>
+</li>
+</ul>
+<p><strong>所有用户定义的符号都是作为伪寄存器<code>FP</code>和<code>SB</code>的偏移量进行写操作。</strong></p>
+<p><code>SB</code>伪寄存器可以想象成内存的原点，所以类似于<code>foo(SB)</code>这种符号的名字<code>foo</code>就被当做在内存中的地址。<strong>这种形式用于命名全局函数和数据。</strong>在名字后面添加<code>&lt;&gt;</code>，例如<code>foo&lt;&gt;(SB)</code>，<strong>会使得这个名字只对当前源文件可见</strong>，有点像在C文件中一个顶级<code>static</code>声明。如果在名字后面添加了一个偏移量，指的是符号地址偏移几个字节后的地址，例如<code>foo+4(SB)</code>指示的是从<code>foo</code>位置开始加4个字节的地址。</p>
+<p><code>FP</code>伪寄存器是一个虚拟帧指针用来指示方法参数。编译器维护一个虚拟帧指针，并用伪寄存器偏移量来指示栈中的变量。因此<code>0(FP)</code>就是方法中第1个参数，<code>8(FP)</code>就是第2个参数（在64位机器上讨论），以此类推。然而，<strong>当用这种方式来指示方法参数时，必须要在刚开始放一个名字</strong>，例如<code>first_arg+0(FP)</code>和<code>second_arg+8(FP)</code>。汇编程序强制这种规则，它会拒绝<code>0(FP)</code>和<code>8(FP)</code>这种简单写法。实际名字是语义无关的，但应该用来记录参数的名字。需要强调的是，<strong><code>FP</code>总是指一个伪寄存器，并不是硬件寄存器，即使有些机器架构上有一个硬件帧指针寄存器。这一点和<code>SP</code>完全不一样</strong></p>
+<blockquote>
+<p>这种方式和上一段的SB偏移有所不同，<code>foo+4(SB)</code>指的是相对于<code>foo</code>地址的偏移4个字节，而<code>arg+4(FP)</code>指的却是相对于帧指针<code>FP</code>地址的偏移4个字节。切记！**</p>
+</blockquote>
+<p>对于Go原始类型参数的汇编方法，<code>go vet</code>会检查参数名字和偏移量是否匹配。在32位系统上，一个64位的值的低32位和高32位会分别被加上<code>_lo</code>或<code>_hi</code>后缀，就像<code>arg_lo+0(FP)</code>和<code>arg_hi+4(FP)</code>这样。如果一个Go原始类型在返回时没有被命名，那么预期的汇编名字是<code>ret</code>。</p>
+<p><code>SP</code>伪寄存器是一个虚拟栈指针，用来指示本地帧变量以及为了函数调用准备的变量。它指向本地栈帧的顶部，所以所有的引用都应该使用负值偏移量，范围为<code>[-framesize, 0)</code>：例如<code>x-8(SP), y-4(SP)</code>等等。这里的偏移规则和<code>FP</code>一样。</p>
+<p><strong>在具有名为<code>SP</code>的硬件寄存器的架构上，名称前缀被用来区分是虚拟栈指针的应用还是架构<code>SP</code>寄存器的应用。也就是说，<code>x-8(SP)</code>和<code>-8(SP)</code>是不同的内存地址：第一个是指虚拟栈指针伪寄存器<code>SP</code>，第2个是指硬件寄存器<code>SP</code></strong></p>
+<p>在机器层面，<code>SP</code>和<code>PC</code>通常都是一个物理带编号名称的寄存器别名，在Go汇编程序中，<code>SP</code>和<code>PC</code>依然是被特殊对待的伪寄存器。例如，想要指向Go汇编的<code>SP</code>，就需要一个名字，很像<code>FP</code>。而要访问真实的物理寄存器，则使用真实的<code>R</code>名称。例如，在<code>ARM</code>架构上，硬件<code>SP</code>使用<code>R13</code>访问，硬件<code>PC</code>使用<code>R15</code>访问。</p>
+<p>分支和直接跳转通常以<code>PC</code>的偏移量书写，或者直接跳到指定标签。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">label:</span><br><span class="line">	MOVW $0, R1</span><br><span class="line">	JMP label</span><br></pre></td></tr></table></figure>
+
+<p>每个<code>label</code>只在它被定义的函数内部可见。因此允许在一个文件当中多个函数定义使用同一个名字的<code>label</code>。直接跳转和<code>call</code>命令可以以文本符号作为目标，例如<code>name(SB)</code>，但不能是符号的偏移，例如<code>name+4(SB)</code>。</p>
+<p>指令，寄存器，以及汇编命令总是以大写形式出现，以提醒你汇编编程是一项极其艰巨的任务（…哈哈哈…）。</p>
+<p>在Go目标文件(<code>object file</code>)和二进制文件中，一个符号的全名是<strong>包路径后跟句点再加符号名称</strong>：<code>fmt.Printf</code>或者<code>math/rand.Int</code>。因为汇编程序的解析器会将句点和斜杠视为标点符号，所以他们并不能直接用作标识符名称。代替方案是，汇编程序允许在标识符中使用<code>U+00B7</code>代替<code>.</code>，使用<code>U+2215</code>代替<code>/</code>，并把它们翻译为普通句点和斜杠。在一个汇编源码文件中，上面的符号写为<code>fmt.Printf</code>和<code>math/rand.Int</code>。编译器在使用<code>-S</code>标志时生成的程序及列表直接显示句点和斜杠，而不是汇编程序所需的<code>Unicode</code>替代。</p>
+<p>大多数手写的汇编文件都不会在符号名字中包含完整的包路径，因为链接器会对所有以<code>.</code>开头的任何名称前面，插入当前目标文件的包路径：例如在<code>math</code>包下的汇编源文件，包中的<code>Asin()</code>函数都可以被汇编源码引用为<code>.Asin()</code>。这个约定避免了在汇编源码中硬编码包的导入路径，从而可以更方便的将代码移动位置。</p>
+<h1 id="命令"><a href="#命令" class="headerlink" title="命令"></a>命令</h1><p>汇编程序使用多种命令将文本和数据绑定到符号名称上。例如这里有一个简单的完整函数定义。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">TEXT runtime·profileloop(SB),NOSPLIT,$8</span><br><span class="line">	MOVQ	$runtime·profileloop1(SB), CX</span><br><span class="line">	MOVQ	CX, 0(SP)</span><br><span class="line">	CALL	runtime·externalthreadhandler(SB)</span><br><span class="line">	RET</span><br></pre></td></tr></table></figure>
+
+<p><code>TEXT</code>命令声明了符号<code>runtime.profileloop</code>，以及后续的指令构成了整个函数体。在一个<code>TEXT</code>块中的最后一个指令必须是跳转类的，通常是一个<code>RET</code>(伪)指令。（如果没有，链接器会尾加一个跳转到自身的指令，在<code>TEXT</code>块中不存在<code>fallthrough</code>自动贯穿）。在<code>runtime.profileloop</code>符号之后，<strong>参数分别是标志<code>NOSPLIT</code>，和帧大小<code>$8</code>，是一个常数。</strong></p>
+<p>一般情况下，帧大小后面还跟了一个函数参数大小，以减号<code>-</code>分隔。（这并不是减法，只是一种独特的写法）。例如帧大小<code>$24-8</code>表示该函数有一个24字节的帧，并且被8字节大小的参数调用(包括传入参数和返回值，总共加起来8个字节)，<strong>这些参数都存在于调用者帧上面。</strong>如果<code>TEXT</code>块没有说明<code>NOSPLIT</code>，参数大小必须提供。对于Go原型的汇编函数，<code>go vet</code>会检查参数大小是否正确。</p>
+<p>符号名字使用<code>.</code>来分隔，并且名字代表了相对于<code>SB</code>的偏移量。这个函数在<code>runtime</code>包的汇编源码中，所以同一包中的Go程序可以使用简单名称<code>profileloop</code>进行调用。</p>
+<p>全局数据符号由一系列的后接<code>GLOBL</code>命令的初始化<code>DATA</code>命令定义，每一个<code>DATA</code>命令初始化一片对应的内存区域。那些没有被明确初始化的内存则为零值。<code>DATA</code>命令的一般形式为</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">DATA	symbol+offset(SB)/width, value</span><br></pre></td></tr></table></figure>
+
+<p>含义是：使用给定的<code>value</code>，对相对于<code>symbol</code>偏移<code>offset</code>的地址，宽度为<code>width</code>字节的内存区域进行初始化。对于一个给定<code>symbol</code>上的一系列<code>DATA</code>指令，初始化时，偏移量必须是递增的。不一定需要单步递增。</p>
+<p><code>GLOBL</code>命令将一个符号声明为全局数据。后面的参数是可选的标志，和符号的数据大小，这个符号的初始值全为0，除非一个<code>DATA</code>指令对它进行了初始化。<code>GLOBL</code>命令必须在对应的DATA命令后面。<code>GLOBL</code>的格式如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GLOBL symbol(SB), [flgs], width</span><br></pre></td></tr></table></figure>
+
+<p>实际例子</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">DATA divtab&lt;&gt;+0x00(SB)/4, $0xf4f8fcff</span><br><span class="line">DATA divtab&lt;&gt;+0x04(SB)/4, $0xe6eaedf0</span><br><span class="line">...</span><br><span class="line">DATA divtab&lt;&gt;+0x3c(SB)/4, $0x81828384</span><br><span class="line">GLOBL divtab&lt;&gt;(SB), RODATA, $64</span><br><span class="line"></span><br><span class="line">GLOBL runtime·tlsoffset(SB), NOPTR, $4</span><br></pre></td></tr></table></figure>
+
+<p>含义为：声明并初始化了<code>divtab&lt;&gt;</code>，一个只读的，64字节列表，存储4字节的整型元素；又声明了<code>runtime.tlsoffset</code>，一个4字节的，隐含零值的，不包含指针的变量。</p>
+<p>命令有可能有一到两个参数，如果有2个，那么第一个就是标志(flags)的位掩码，可以写为数字表达式，所有标志的细节在<code>runtime/textflag.h</code>文件中有详细说明</p>
+<ul>
+<li><code>#define NOSPLIT 4</code>：不插入前置代码以检查栈是否需要被分裂。用来保护那些自己在代码中做栈分裂的协程。</li>
+</ul>
+<h1 id="运行时协调（Runtime-Coordination）"><a href="#运行时协调（Runtime-Coordination）" class="headerlink" title="运行时协调（Runtime Coordination）"></a>运行时协调（Runtime Coordination）</h1><p>为了垃圾回收器能正确运行，运行时必须知道所有全局数据中的，和大多数栈帧中的指针地址。Go编译器在编译Go源程序时会发射这些信息，但是汇编程序必须要显式定义它们。</p>
+<p>如果一个数据符号被标记为<code>NOPTR</code>，就会被认为不包含指向运行时分配的数据的指针。如果一个符号被标记为<code>RODATA</code>，它就会被分配在只读内存区域因此也等于隐式对待为<code>NOPTR</code>。如果一个符号总共内存大小还小于一个指针的大小，那么它也被隐式对待为<code>NOPTR</code>。在一个汇编源码中不可能定义一个包含指针的符号，这样的符号必须在Go代码中定义。汇编代码即使没有<code>DATA</code>和<code>GLOBL</code>命令也能根据名称引用符号。<strong>一个好的经验法则是在Go代码中定义所有非只读的符号，而不是在汇编代码中定义。</strong></p>
+<h1 id="特定于机器架构的细节"><a href="#特定于机器架构的细节" class="headerlink" title="特定于机器架构的细节"></a>特定于机器架构的细节</h1><h1 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h1><ul>
+<li><p><a href="https://golang.org/doc/asm" target="_blank" rel="noopener">https://golang.org/doc/asm</a></p>
+</li>
+<li><p><a href="https://golang.org/ref/spec#Operators" target="_blank" rel="noopener">https://golang.org/ref/spec#Operators</a></p>
+</li>
+<li><p><a href="https://golang.org/src/runtime/textflag.h" target="_blank" rel="noopener">https://golang.org/src/runtime/textflag.h</a></p>
+</li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/06/25/深入研究goroutine栈/" rel="next" title="深入研究goroutine栈">
+                <i class="fa fa-chevron-left"></i> 深入研究goroutine栈
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Go汇编语言快速指导"><span class="nav-number">1.</span> <span class="nav-text">Go汇编语言快速指导</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#常量"><span class="nav-number">2.</span> <span class="nav-text">常量</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#符号"><span class="nav-number">3.</span> <span class="nav-text">符号</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#命令"><span class="nav-number">4.</span> <span class="nav-text">命令</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#运行时协调（Runtime-Coordination）"><span class="nav-number">5.</span> <span class="nav-text">运行时协调（Runtime Coordination）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#特定于机器架构的细节"><span class="nav-number">6.</span> <span class="nav-text">特定于机器架构的细节</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考链接"><span class="nav-number">7.</span> <span class="nav-text">参考链接</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

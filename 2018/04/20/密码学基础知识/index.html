@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  Kerckhoffs原理 Kerckhoffs原理：即使除秘钥外的整个系统的一切都是公开的，这个密码体制也必须是安全的。尤其是即使攻击者知道系统的加密算法和解密算法，此系统也必须是安全的。   Auguste Kerckhoffs于1883年提出">
+<meta property="og:type" content="article">
+<meta property="og:title" content="密码学基础知识">
+<meta property="og:url" content="http://www.huamo.online/2018/04/20/密码学基础知识/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  Kerckhoffs原理 Kerckhoffs原理：即使除秘钥外的整个系统的一切都是公开的，这个密码体制也必须是安全的。尤其是即使攻击者知道系统的加密算法和解密算法，此系统也必须是安全的。   Auguste Kerckhoffs于1883年提出">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/ecc.png">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.973Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="密码学基础知识">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  Kerckhoffs原理 Kerckhoffs原理：即使除秘钥外的整个系统的一切都是公开的，这个密码体制也必须是安全的。尤其是即使攻击者知道系统的加密算法和解密算法，此系统也必须是安全的。   Auguste Kerckhoffs于1883年提出">
+<meta name="twitter:image" content="http://www.huamo.online/source_code/image/ecc.png">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2018/04/20/密码学基础知识/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>密码学基础知识 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2018/04/20/密码学基础知识/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">密码学基础知识
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-04-20 20:37:37" itemprop="dateCreated datePublished" datetime="2018-04-20T20:37:37+08:00">2018-04-20</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/cryptography/" itemprop="url" rel="index"><span itemprop="name">cryptography</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h1 id="Kerckhoffs原理"><a href="#Kerckhoffs原理" class="headerlink" title="Kerckhoffs原理"></a><code>Kerckhoffs</code>原理</h1><blockquote>
+<p><strong><code>Kerckhoffs</code>原理</strong>：即使除秘钥外的整个系统的一切都是公开的，这个密码体制也必须是安全的。尤其是即使攻击者知道系统的加密算法和解密算法，此系统也必须是安全的。</p>
+</blockquote>
+<blockquote>
+<p><code>Auguste Kerckhoffs</code>于<code>1883</code>年提出</p>
+</blockquote>
+<a id="more"></a>
+
+<h1 id="合适的密钥长度"><a href="#合适的密钥长度" class="headerlink" title="合适的密钥长度"></a>合适的密钥长度</h1><ol>
+<li><p>只有在蛮力攻击是已知的最好的攻击方法时，才会考虑讨论对称加密算法中密钥长度的问题。</p>
+</li>
+<li><p>对称算法和非对称算法所要求的密钥长度完全不同。比如，长度为<code>80</code>位的对称密钥所提供的安全性和<code>1024</code>位的<code>RSA</code>密钥的安全性相当。</p>
+</li>
+</ol>
+<h1 id="整数环"><a href="#整数环" class="headerlink" title="整数环"></a>整数环</h1><h2 id="整数环的定义"><a href="#整数环的定义" class="headerlink" title="整数环的定义"></a>整数环的定义</h2><blockquote>
+<p><strong>定义 环</strong></p>
+<p>整数环$\mathbb{Z}_m$由以下两部分组成：</p>
+<ol>
+<li><p>集合$\mathbb{Z}_m$ = {0, 1, 2, …, m-1}</p>
+</li>
+<li><p>两种操作<code>+</code>和<code>x</code>，使得对所有的$a, b \in \mathbb{Z}_m$有：</p>
+<p>1) $a + b \equiv c \ mod \ m, (c \in \mathbb{Z}_m)$</p>
+<p>2) $a \times b \equiv d \ mod \ m, (d \in \mathbb{Z}_m)$</p>
+</li>
+</ol>
+</blockquote>
+<h2 id="乘法逆元"><a href="#乘法逆元" class="headerlink" title="乘法逆元"></a>乘法逆元</h2><p>整数环有一个特性：不是所有元素都存在乘法逆元。假设$a \in \mathbb{Z}$，乘法逆元$a^{-1}$可以定义为：</p>
+<p>$a \cdot a^{-1} \equiv 1 \ mod \ m$。</p>
+<p>如果元素<code>a</code>的乘法逆元存在，则可以除以这个元素，因为$b / a \equiv b \cdot a^{-1} \ mod \ m$。</p>
+<p><strong>注意，$a^{-1}$依然是一个整数</strong></p>
+<p>有一个简单的方法可以判断给定元素<code>a</code>的逆元是否存在：当且仅当<code>gcd(a, m) = 1</code>时，一个元素$a \in \mathbb{Z}$存在乘法逆元$a^{-1}$。其中<code>gcd</code>表示最大公约数。</p>
+<p>举个例子：在整数环$\mathbb{Z}_{26}$中，如果$a = 3$，则$a^{-1} = 9$，因为$3 \cdot 9 = 27 \equiv 1 \ mod \ 26$。</p>
+<h1 id="群"><a href="#群" class="headerlink" title="群"></a>群</h1><h2 id="群的定义"><a href="#群的定义" class="headerlink" title="群的定义"></a>群的定义</h2><p>对于离散对数问题来说，群，循环群等概念很重要，先来看看群的定义。</p>
+<blockquote>
+<p><strong>定义 群</strong></p>
+<p>群指的是一个元素集合$G$以及联合$G$内两个元素的操作$o$的集合。群具有以下属性：</p>
+<ol>
+<li><p>群操作$o$是封闭的，即对所有的$a, b \in G, aob = c \in G$始终成立。</p>
+</li>
+<li><p>群操作是可结合的，即对所有的$a, b, c \in G$，都有$ao(boc) = (aob)oc$。</p>
+</li>
+<li><p>存在一个元素$1 \in G$，对所有的$a \in G$均满足$ao1 = 1oa = a$，这个元素成为中性元或单位元。</p>
+</li>
+<li><p>对每个元素$a \in G$，存在一个元素$a^{-1} \in G$，满足$aoa^{-1} = a^{-1}oa = 1$，则$a^{-1}$称为$a$的逆元。</p>
+</li>
+<li><p>如果所有$a, b \in G$都额外满足$aob = boa$，则称群$G$为<strong>阿贝尔群</strong>或<strong>可交换群</strong>。</p>
+</li>
+</ol>
+</blockquote>
+<h2 id="有限群"><a href="#有限群" class="headerlink" title="有限群"></a>有限群</h2><p>在密码学中，我们总是关注有限的结构，下面给出<strong>有限群</strong>的简单定义：</p>
+<blockquote>
+<p><strong>定义 有限群</strong></p>
+<p>一个群$(G, o)$是有限的，仅当它拥有有限个元素。群$G$的基或阶可以表示为$|G|$。</p>
+</blockquote>
+<h2 id="群的阶或基"><a href="#群的阶或基" class="headerlink" title="群的阶或基"></a>群的阶或基</h2><p><strong>群的基其实就是这个群内元素的个数。</strong>即例如：</p>
+<p>对于群$(\mathbb{Z}_n, +)$：$\mathbb{Z}_n$的基为$|\mathbb{Z}_n| = n$，因为$\mathbb{Z}_n = \lbrace 0, 1, 2, …, n-1 \rbrace$。</p>
+<p>请记住，<strong>群$\mathbb{Z}^*_n$是由小于$n$且与$n$互素的正整数组成的集合。</strong>因此，$\mathbb{Z}^*_n$的基等于$n$的欧拉函数，即$|\mathbb{Z}^*_n| = \Phi(n)$。</p>
+<h2 id="元素的阶"><a href="#元素的阶" class="headerlink" title="元素的阶"></a>元素的阶</h2><blockquote>
+<p><strong>定义 元素的阶</strong></p>
+<p>群$(G, o)$内某个元素$a$的阶$ord(a)$指的是满足以下条件的最小正整数$k$：</p>
+<p>$a^{k} = \underbrace{aoao \ldots oa}_{k次} = 1$，</p>
+<p>其中$1$是$G$的单位元</p>
+</blockquote>
+<h2 id="循环群"><a href="#循环群" class="headerlink" title="循环群"></a>循环群</h2><p>通过元素的阶可以引入循环群的概念</p>
+<blockquote>
+<p><strong>定义 循环群</strong></p>
+<p>如果群$G$包含一个拥有最大阶$ord(\alpha)=|G|$的元素$\alpha$，则称这个群是循环群。拥有最大阶的元素称为原根（本原元）或生成元。</p>
+</blockquote>
+<p>群$G$中拥有最大阶的元素$\alpha$称为生成元，因为$G$中每个元素$e$都可以写成是这个元素的幂值$\alpha^{i} = e$($i$为任意值)，即$\alpha$产生了整个群。</p>
+<p>循环群具有一些有趣属性，其中对加密应用最重要的一个在下面定理中给出。</p>
+<blockquote>
+<p><strong>定理</strong>：对每个素数$p$，$(\mathbb{Z}^*_p, \cdot)$都是一个阿贝尔有限循环群。</p>
+</blockquote>
+<p>这个定理说明了每个素数域的乘法群都是循环群。这个结论对密码学产生了深远影响，因为这些群对于构建离散对数密码体制非常重要，请注意这样一个事实：<strong>几乎所有的Web浏览器都内嵌了一个基于$\mathbb{Z}^*_p$的密码体制</strong></p>
+<h1 id="域（field）"><a href="#域（field）" class="headerlink" title="域（field）"></a>域（field）</h1><h2 id="域的定义"><a href="#域的定义" class="headerlink" title="域的定义"></a>域的定义</h2><p>为使一个结构同时支持四种基本算术运算（即加，减，乘，除），需要一个同时包含加法与乘法群的集合，也就是常说的域（field）。</p>
+<blockquote>
+<p><strong>定义 域（field）</strong></p>
+<p>域$F$是拥有一下特性的元素的集合。</p>
+<ul>
+<li><p>$F$中的所有元素形成一个加法群，对应的群操作为“$+$”，中性元为$0$。</p>
+</li>
+<li><p>$F$中除$0$外的所有元素构成了一个乘法群，对应的群操作为“$\times$”，中性元为$1$。</p>
+</li>
+<li><p>当混合使用这两种群操作时，分配定理始终成立，即对所有的$a, b, c \in F$，都有$a(b + c) = (ab) + (ac)$。</p>
+</li>
+</ul>
+</blockquote>
+<h2 id="有限域"><a href="#有限域" class="headerlink" title="有限域"></a>有限域</h2><p><strong>在密码编码学中，我们基本上只对拥有有限个元素的域感兴趣，而这样的域也称为有限域或伽罗瓦域。域所包含元素的个数称为域的阶或基。</strong>下面这个定理非常重要：</p>
+<blockquote>
+<p><strong>定理： 只有当m是一个素数的幂时，即$m = p^n$（其中$n$为正整数，$p$为素数），阶为$m$的域才存在。$p$称为这个有限域的特征。</strong></p>
+</blockquote>
+<p>此定理意味着有限域的元素个数可以为$11$（因为$11 = 11^1$）或$81$（因为$81 = 3^4$），但不可能是$12$（因为$12$不是任何一个素数的幂）。</p>
+<h2 id="素域"><a href="#素域" class="headerlink" title="素域"></a>素域</h2><p>阶为素数的域，即$m = p^n$中$n = 1$的域即为素域。记为$GF(p)$，域中的元素可以用整数$0, 1, \ldots, p-1$来表示。素域的两种操作就是模整数加法和整数乘法模$p$。</p>
+<blockquote>
+<p><strong>定理：假设$p$是一个素数，整数环$\mathbb{Z}_p$表示为$GF(p)$，也称为是拥有素数个元素的素数的域。$GF(p)$中所有的非零元素都存在逆元，$GF(p)$内的算术运算都是模$p$实现的。</strong></p>
+</blockquote>
+<p>为了在素域中进行算术运算，我们必须遵循整数环的以下规则：加法和乘法都是通过模$p$实现的；任何一个元素$a$的加法逆元由$a + (-a) = 0\ mod\ p$给出；任何一个非零元素$a$的乘法逆元定义为$a \cdot a^{-1} = 1$。</p>
+<h1 id="离散对数问题（DLP）"><a href="#离散对数问题（DLP）" class="headerlink" title="离散对数问题（DLP）"></a>离散对数问题（DLP）</h1><h2 id="素数域内的离散对数问题"><a href="#素数域内的离散对数问题" class="headerlink" title="素数域内的离散对数问题"></a>素数域内的离散对数问题</h2><p>首先介绍基于$\mathbb{Z}^*_p$的<code>DLP</code>，其中$p$为素数。</p>
+<blockquote>
+<p><strong>定义 基于$\mathbb{Z}^*_p$的离散对数问题（<code>DLP</code>）</strong></p>
+<p>给定一个阶为$p-1$的有限循环群$\mathbb{Z}^*_p$，一个本原元$\alpha \in \mathbb{Z}^*_p$和另一个元素$\beta \in \mathbb{Z}^*_p$。<code>DLP</code>是确定满足以下条件的整数$x$（其中$1 \leqslant x \leqslant p-1$）的问题：</p>
+<p>$\alpha^x \equiv \beta \ mod \ p$</p>
+<p>这个整数$x$也称为以$\alpha$为基的$\beta$的离散对数，可以正式地写作：</p>
+<p>$x = log_\alpha\beta \ mod \ p$</p>
+</blockquote>
+<h2 id="推广的离散对数问题（GDLP）"><a href="#推广的离散对数问题（GDLP）" class="headerlink" title="推广的离散对数问题（GDLP）"></a>推广的离散对数问题（<code>GDLP</code>）</h2><blockquote>
+<p><strong>定义 推广的离散对数问题</strong></p>
+<p>给定一个基为$n$的有限循环群$G$，群操作为$o$。考虑一个本原元$\alpha \in G$和另一个元素$\beta \in G$，则离散对数问题为：找到在$1 \leqslant x \leqslant n$内的整数$x$，满足：</p>
+<p>$\beta = \underbrace{\alpha o \alpha o \ldots o \alpha}_{x次} = \alpha^x$</p>
+</blockquote>
+<h1 id="椭圆曲线密码体系（ECC）"><a href="#椭圆曲线密码体系（ECC）" class="headerlink" title="椭圆曲线密码体系（ECC）"></a>椭圆曲线密码体系（<code>ECC</code>）</h1><p>ECC基于推广的离散对数问题。</p>
+<h2 id="椭圆曲线的定义"><a href="#椭圆曲线的定义" class="headerlink" title="椭圆曲线的定义"></a>椭圆曲线的定义</h2><p>一个多项式等式对应于一种曲线，这里的曲线指的是方程的解对应的点$(x, y)$的集合。比如$x^2 + y^2 = r^2$对应的是圆，$a \cdot x^2 + b \cdot y^2 = c$对应的是椭圆。而椭圆曲线是一种特殊的多项式方程，下面给出其定义。</p>
+<blockquote>
+<p><strong>定义 椭圆曲线</strong></p>
+<p>$\mathbb{Z}_p(p &gt; 3)$上的椭圆曲线指满足以下条件的所有对$(x, y) \in \mathbb{Z}_p$的集合</p>
+<p>$y^2 \equiv x^3 + a \cdot x + b \ mod \ p$</p>
+<p>以及一个无穷大的虚数点$\mathscr{O}$，其中$a, b \in \mathbb{Z}_p$</p>
+<p>并且满足条件$4 \cdot a^3 + 27 \cdot b^2 \ne 0 \ mod \ p$。</p>
+</blockquote>
+<p>椭圆曲线的定义要求该曲线是非奇异的，从位置上讲，就是指该曲线的图不会自我相交或没有顶点。如果判别式$-16(4a^3 + 27b^2)$不等于$0$，即可保证这一点。</p>
+<h2 id="椭圆曲线的特性"><a href="#椭圆曲线的特性" class="headerlink" title="椭圆曲线的特性"></a>椭圆曲线的特性</h2><p>椭圆曲线示例：</p>
+<p><img src="/source_code/image/ecc.png" alt></p>
+<ul>
+<li><p>椭圆曲线不是椭圆，它们的作用是确定椭圆的周长，并因此得名。</p>
+</li>
+<li><p>椭圆曲线是关于$x$轴对称的。</p>
+<h1 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h1></li>
+<li><p>《深入浅出密码学–常用加密技术》</p>
+</li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/04/20/Ethereum源码阅读笔记-accounts-2-分层确定性钱包/" rel="next" title="Ethereum源码阅读笔记-accounts(2)-分层确定性钱包">
+                <i class="fa fa-chevron-left"></i> Ethereum源码阅读笔记-accounts(2)-分层确定性钱包
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/04/26/Ethereum源码阅读笔记-accounts-3-创建账号背后的故事/" rel="prev" title="Ethereum源码阅读笔记-accounts-3-创建账号背后的故事">
+                Ethereum源码阅读笔记-accounts-3-创建账号背后的故事 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Kerckhoffs原理"><span class="nav-number">1.</span> <span class="nav-text">Kerckhoffs原理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#合适的密钥长度"><span class="nav-number">2.</span> <span class="nav-text">合适的密钥长度</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#整数环"><span class="nav-number">3.</span> <span class="nav-text">整数环</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#整数环的定义"><span class="nav-number">3.1.</span> <span class="nav-text">整数环的定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#乘法逆元"><span class="nav-number">3.2.</span> <span class="nav-text">乘法逆元</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#群"><span class="nav-number">4.</span> <span class="nav-text">群</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#群的定义"><span class="nav-number">4.1.</span> <span class="nav-text">群的定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#有限群"><span class="nav-number">4.2.</span> <span class="nav-text">有限群</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#群的阶或基"><span class="nav-number">4.3.</span> <span class="nav-text">群的阶或基</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#元素的阶"><span class="nav-number">4.4.</span> <span class="nav-text">元素的阶</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#循环群"><span class="nav-number">4.5.</span> <span class="nav-text">循环群</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#域（field）"><span class="nav-number">5.</span> <span class="nav-text">域（field）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#域的定义"><span class="nav-number">5.1.</span> <span class="nav-text">域的定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#有限域"><span class="nav-number">5.2.</span> <span class="nav-text">有限域</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#素域"><span class="nav-number">5.3.</span> <span class="nav-text">素域</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#离散对数问题（DLP）"><span class="nav-number">6.</span> <span class="nav-text">离散对数问题（DLP）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#素数域内的离散对数问题"><span class="nav-number">6.1.</span> <span class="nav-text">素数域内的离散对数问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#推广的离散对数问题（GDLP）"><span class="nav-number">6.2.</span> <span class="nav-text">推广的离散对数问题（GDLP）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#椭圆曲线密码体系（ECC）"><span class="nav-number">7.</span> <span class="nav-text">椭圆曲线密码体系（ECC）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#椭圆曲线的定义"><span class="nav-number">7.1.</span> <span class="nav-text">椭圆曲线的定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#椭圆曲线的特性"><span class="nav-number">7.2.</span> <span class="nav-text">椭圆曲线的特性</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考资料"><span class="nav-number">8.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

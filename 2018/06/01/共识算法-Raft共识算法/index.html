@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  Raft是什么Raft是一种被设计为通俗易懂的共识算法。它在容错和性能方面等价于Paxos。不同之处在于它被分解为相对独立的子问题，并且它清楚解决了实际系统的各个所需部分。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="共识算法-Raft共识算法">
+<meta property="og:url" content="http://www.huamo.online/2018/06/01/共识算法-Raft共识算法/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  Raft是什么Raft是一种被设计为通俗易懂的共识算法。它在容错和性能方面等价于Paxos。不同之处在于它被分解为相对独立的子问题，并且它清楚解决了实际系统的各个所需部分。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/raft-1.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/raft-2.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/raft-3.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/raft-4.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/raft-5.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/raft-6.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/raft-7.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/raft-8.png">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.972Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="共识算法-Raft共识算法">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  Raft是什么Raft是一种被设计为通俗易懂的共识算法。它在容错和性能方面等价于Paxos。不同之处在于它被分解为相对独立的子问题，并且它清楚解决了实际系统的各个所需部分。">
+<meta name="twitter:image" content="http://www.huamo.online/source_code/image/raft-1.png">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2018/06/01/共识算法-Raft共识算法/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>共识算法-Raft共识算法 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2018/06/01/共识算法-Raft共识算法/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">共识算法-Raft共识算法
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-06-01 10:06:44" itemprop="dateCreated datePublished" datetime="2018-06-01T10:06:44+08:00">2018-06-01</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/ethereum/" itemprop="url" rel="index"><span itemprop="name">ethereum</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h1 id="Raft是什么"><a href="#Raft是什么" class="headerlink" title="Raft是什么"></a>Raft是什么</h1><p><code>Raft</code>是一种被设计为通俗易懂的共识算法。它在容错和性能方面等价于<code>Paxos</code>。不同之处在于它被分解为相对独立的子问题，并且它清楚解决了实际系统的各个所需部分。</p>
+<a id="more"></a>
+
+<h1 id="共识是什么"><a href="#共识是什么" class="headerlink" title="共识是什么"></a>共识是什么</h1><p>共识是容错分布式系统中的一个基本问题。涉及到多个服务器对值（values）达成一致。一旦他们对于一个值达成了一致决定，那么这就是最终的决定。当大部分的服务器都可用时，典型的共识算法都会取得进展；例如，一个拥有5台服务器的集群，即使有2台挂了，整个系统依旧可以运行。如果继续有服务器挂掉，那么集群就无法再运转下去。（但是永远不会返回错误的结果）。</p>
+<p>共识通常出现在状态副本机器的环境中，这是构建容错系统的一般方法。每个服务器都有一个状态机和一个日志。状态机是我们想要容错的组件，例如哈希表。对于客户端来说，即使集群中少数服务器出现故障，它们依然可以和一个单独可靠的状态机进行交互。每个状态机都从它对应的log日志中获取输入命令。在哈希表例子中，log日志可能会输入类似于将<code>x</code>设为3的命令。共识算法用来商定服务器log日志中的命令。共识算法必须确保所有的状态机都将<code>set  x to 3</code>作为第<code>n</code>条命令执行了，没有任何状态机执行了不一样的第<code>n</code>条命令。<strong>结果就是，每一个状态机都执行了相同的一系列命令，因此产出相同的一系列结果，并且达到相同的一系列状态。</strong></p>
+<h1 id="Raft可视化"><a href="#Raft可视化" class="headerlink" title="Raft可视化"></a>Raft可视化</h1><p>这里引用了<a href="https://raft.github.io/" target="_blank" rel="noopener">Raft官网</a>的可视化组件。你可以和其进行互动，探究Raft的运转过程。左边显示5台服务器，右边则是他们的log日志。</p>
+<iframe src="https://raft.github.io/raftscope/index.html" width="800px" height="580px" frameborder="0" allowfullscreen></iframe>
+
+
+<h1 id="笔记"><a href="#笔记" class="headerlink" title="笔记"></a>笔记</h1><p>以下是阅读<a href="https://raft.github.io/raft.pdf" target="_blank" rel="noopener">Raft论文</a>时的笔记，写下来做个记录。</p>
+<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>Raft是一个管理日志副本的共识算法（这里的日志，应该理解为命令流水）。它产生和（multi-）Paxos等同的结果，并且和Paxos一样高效，但和Paxos结构并不一样，这使得Raft更加容易理解，并更有助于构造实用系统。为了提高可读性，Raft分离了共识的关键要素，比如领导者选举，日志复制和安全性，并强调了更强的一致性来减少必须考虑的状态数量。Raft还包含一个用来更改集群成员资格的新机制，该机制使用重叠大多数来保证安全性。</p>
+<h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>共识算法可以确保一批机器在只有一些数量幸存时，仍然可以作为一个团队有条不紊的工作。因此在构建大型可信赖的系统中，共识算法总是关键角色。近10年来都是Paxos主宰了共识算法领域。但是，Paxos实在难以理解，并且它的架构需要复杂的修改才能支持实用系统。</p>
+<blockquote>
+<p>Raft的作者也曾对Paxos做了挣扎，后来他们就开始着手寻找新的共识算法，他们的目的是为了找到一个更易于构建系统的实用型算法。所以从一开始，Raft的主要目标就是容易理解。<strong>重要的不只是算法能够工作，而是能够明确的知道它为什么能够工作。</strong></p>
+</blockquote>
+<p>在设计Raft时，为了易于理解，使用了分离（将领导者选举，日志副本和安全性分解开）和减少状态空间（相对于Paxos，Raft降低了不确定性的程度，这种不确定性会使服务器彼此之间状态不一致）。Raft在很多方面与现有的一致性算法（最显著的属Oki和Liskov的’Viewstamped Replication’）类似，但它有如下几个新颖的特性：</p>
+<ul>
+<li><p><strong>强领导者</strong>：Raft使用了更强的领导者形式。例如，日志条目只会从领导者分发给其它服务器。这简化了日志复制的管理，也使Raft更容易理解。</p>
+</li>
+<li><p><strong>领导者选举</strong>：Raft使用随机定时器来选举领导者。这只是在任何共识算法都要求的心跳机制上增加一小点功能，但却能简单快速的解决冲突问题。</p>
+</li>
+<li><p><strong>成员变化</strong>：Raft在修改集群服务器的配置方面使用了一种新的联合共识方法机制，在状态转换过程中，两种不同配置的大多数成员会部分重叠。这种方法允许在修改配置时集群依然能够正常运行。</p>
+</li>
+</ul>
+<h2 id="副本状态机"><a href="#副本状态机" class="headerlink" title="副本状态机"></a>副本状态机</h2><p>共识算法通常出现在副本状态机的环境中。所谓副本状态机，就是指在一批服务器上的状态机对相同的状态计算出一致的副本，即使一部分服务器挂掉了，系统依然能够继续运行。副本状态机用来解决分布式系统中的多种容错问题。例如，那些拥有单一集群领导者的大型系统，比如<code>GFS</code>, <code>HDFS</code>和<code>RAMCloud</code>，通常会使用一个分离的副本状态机来管理领导者选举和存储配置信息，来保证领导者崩溃掉时，这些数据要能幸存。常见的副本状态机包括<code>Chubby</code>和<code>ZooKeeper</code>。</p>
+<p>副本状态机通常实现都是使用了一个副本日志，如下图1所示。每个服务器维护一个日志存储一系列的命令，状态机按序执行它们。每个服务器上的日志都按照相同顺序存储相同的命令，所以每个状态机都处理相同的命令序列。因为状态机是确定性的，对于相同的状态都会计算出相同的输出序列。</p>
+<p><img src="/source_code/image/raft-1.png" alt></p>
+<p>所以保证日志副本的一致性就是共识算法的工作。一个服务器上的共识模块接收客户端命令输入并追加到日志中，它会和其他服务器的共识模块进行通信，保证每个日志最终都能包含相同顺序的相同请求，即使一些服务器宕机也依然如此。一旦命令被正确的复制，每个服务器的状态机就会按日志中的顺序处理它们，并且会把输出返回给客户端。结果就是，服务器集群表现为一个单一的，高度可靠的状态机。</p>
+<p>实际系统中的共识算法通常有如下几个特性：</p>
+<ul>
+<li><p><strong>在所有的非拜占庭场景下，保证安全性（从不返回错误结果）</strong>。包括网络延时，分区隔离，或者丢包，重复，以及重新排序。</p>
+</li>
+<li><p><strong>只要大多数服务器可用，并能够相互通信，也能连通客户端，那么共识算法就是完全可用的。</strong>因此，一个典型的包含5个服务器的集群可以容忍任意2台服务器宕机。它们可能会从持久化存储中恢复状态，并重新加入集群。</p>
+</li>
+<li><p><strong>不依赖于时间来确保日志一致性</strong>：因为错误的时钟和极端的消息延迟，在最坏情况下，都会引起可用性问题。</p>
+</li>
+<li><p><strong>在通常情况下，只要大多数服务器响应一轮RPC，就可以完成一个命令</strong>；少数慢速服务器不会拖延整个系统的性能。</p>
+</li>
+</ul>
+<h2 id="Paxos的问题"><a href="#Paxos的问题" class="headerlink" title="Paxos的问题"></a>Paxos的问题</h2><p>近10年来，Leslie Lamport的Paxos协议几乎是共识的代名词。很多大学在教授它，很多共识实现也是基于它来改造。Paxos首先定义了<strong>在一个单一决定上能够达成一致的协议</strong>，我们称之为<strong>单一裁定Paxos（single-decree Paxos）</strong>。然后Paxos把多个协议实体集合在一起形成一系列的决定来达成共识，称之为<strong>多重Paxos（multi-Paxos）</strong>。</p>
+<p>Paxos保证安全性和活跃度，并支持集群成员变化。它的正确性已被证明，而且在正常情况下它都是有效的。</p>
+<p>然而，Paxos有两个很大的缺点：</p>
+<ol>
+<li><p>特别的难懂，<strong>作者在论文里面提到他们花了近一年的时间才明白了Paxos全部的协议。</strong> 完整解释文档是出了名的模糊不清。我们猜测Paxos的模糊难懂是因为他选择了<code>single-decree</code>子集作为其算法基础。<code>Single-decree Paxos</code>本来是紧密精妙的，但它却被拆分成了2个阶段，没有简单直观的解释并且无法单独去理解某个阶段。因为这个，很难直观上去搞懂为什么<code>single-decree Paxos</code>协议能够工作【看上去不明觉厉】，此外，构成<code>multi-Paxos</code>的规则也明显增加了复杂性和弯弯绕【subtlety】。我们认为以上关于多个决策如何达到共识的问题上，通过其它的方式进行分解会更加直观和清晰。</p>
+</li>
+<li><p>没有为构建实际应用奠定良好的基础。这一方面是因为<code>multi-Paxos</code>没有广泛认同的算法。<code>Lamport</code>的描述多数聚焦于<code>single-decree Paxos</code>。他只是勾勒出了实现<code>multi-Paxos</code>的多种可能方法，但是很多细节都是缺失的。</p>
+</li>
+</ol>
+<p>结果就是，实际系统和原生Paxos几乎没有相似之处。每个实现都开始于Paxos，发现困难，然后创造出另一个明显不同的架构。这既耗时又容易出错，并且Paxos的难懂又加剧了这个问题。Paxos的公式化表达可能是一种很好的证明其正确性的方式，但实际实现和Paxos偏离很大也让这种证明显得价值不大。下面来自<code>Chubby</code>实现者的评论很有代表性：</p>
+<blockquote>
+<p>Paxos算法描述和真实世界系统所需要的之间存在一个巨大的鸿沟…最终的系统只能基于一个未经证明的协议上搭建。</p>
+</blockquote>
+<p>由于这些问题，论文作者得出结论：Paxos在系统构建和教学方面都没有提供良好的基础。鉴于共识的重要性，于是他们就决定设计一种简单易懂，且易于构建的共识算法 – <code>Raft</code>。</p>
+<h2 id="可理解性设计"><a href="#可理解性设计" class="headerlink" title="可理解性设计"></a>可理解性设计</h2><p>在设计Raft时有几个目标：</p>
+<ol>
+<li><p><strong>必须能够为系统构建提供一个完整实用的基础</strong>，可以大幅度减少设计工作量。</p>
+</li>
+<li><p><strong>必须在所有情况下都保证安全（即不返回错误结果），以及在典型操作场景中可用。</strong></p>
+</li>
+<li><p><strong>对于常见操作必须有效。</strong></p>
+</li>
+<li><p>最重要的目标，也是最难的挑战，是<strong>可理解性</strong>。必须尽可能的让普罗大众都很轻松的理解这个算法。</p>
+</li>
+</ol>
+<p>另外，必须尽可能的顺应直觉来设计这个算法，以便系统构建者在实际实现中做出不可避免的扩展。</p>
+<p>基于可理解性的原则，团队评估了好几种候选方案，最终选用了两种常用的技术。</p>
+<ol>
+<li><p><strong>问题分解法</strong>：将问题分解成能够解决的几块，可以相对独立的解释和理解。例如，在Raft中，分解出了领导者选举，日志副本，安全性，和成员变化。</p>
+</li>
+<li><p><strong>通过减少需要考虑的状态数量去简化状态空间</strong>：使系统更加条理连贯，并尽可能的消除不确定性。具体来说，日志不允许有洞（holes，WTF？完整看下来应该是指序列断层），并且Raft限制了那些日志会变得不一致的途径。尽管在大多数情况下我们尝试去消除不确定性，但是有些场景中不确定性确实能有助于理解。就比如，随机方法引入了不确定性，但是它们通过一种形式来处理所有可能选择来减小了状态空间，那么这就是可以接受的。我们使用了随机方法简化领导者选举算法。</p>
+</li>
+</ol>
+<h2 id="Raft共识算法"><a href="#Raft共识算法" class="headerlink" title="Raft共识算法"></a>Raft共识算法</h2><p>Raft是一种管理副本状态机中日志副本的共识算法。下面的图表2总结了算法的精简摘要，而图表3则罗列了算法中的一些关键属性。</p>
+<blockquote>
+<p>图表2：Raft精简摘要</p>
+</blockquote>
+<div style="display: flex;">
+    <div style="display: flex; flex-flow: column nowrap">
+        <div style="border: solid 1px #255bac; width:340px; line-height: normal">
+            <div style="background-color: #255bac; color: #FFFFFF; text-align: center; font-weight: bold">状态</div>
+            <div style="padding-left: 5px; padding-right: 15px;">
+                <div style="color: #ae0017; font-weight: bold; margin-top: 5px">在所有服务器上的持久化状态：</div>
+                <div style="color: #3e459b">（在响应RPC请求前，都会先在持久化存储上做更新）</div>
+                <div>
+                    <div style="font-weight: bold; float: left">currentTerm</div>
+                    <div style="margin-left: 100px">该服务器看到的最新周期（第一次启动时初始化为0，而后单调增加）</div>
+                </div>
+                <div style="margin-top: 5px">
+                    <div style="font-weight: bold; float: left">votedFor</div>
+                    <div style="margin-left: 100px">在当前周期中收到的选举candidateId</div>
+                </div>
+                <div style="margin-top: 5px">
+                    <div style="font-weight: bold; float: left">log[]</div>
+                    <div style="margin-left: 100px">日志条目；每一条都包含状态机命令，如果条目来自于领导者，则还包含term（第一个序号为1）</div>
+                </div>
+                <div style="color: #ae0017; font-weight: bold; margin-top: 15px">在所有服务器上的非持久化状态：</div>
+                <div>
+                    <div style="font-weight: bold; float: left">commitIndex</div>
+                    <div style="margin-left: 100px">被周知提交的最高日志条目序号（初始值为0，而后单调增加）</div>
+                </div>
+                <div style="margin-top: 5px">
+                    <div style="font-weight: bold; float: left">lastApplied</div>
+                    <div style="margin-left: 100px">执行到状态机上最高日志条目序号（初始值为0，而后单调增加）</div>
+                </div>
+                <div style="color: #ae0017; font-weight: bold; margin-top: 15px">在领导者上的非持久化状态：</div>
+                <div style="color: #3e459b">（每次选举后都重新初始化）</div>
+                <div>
+                    <div style="font-weight: bold; float: left">nextIndex[]</div>
+                    <div style="margin-left: 100px">对于每个服务器，要发送给它的下一条日志条目序号（初始化为领导者的lastLogIndex + 1）</div>
+                </div>
+                <div style="margin-top: 5px">
+                    <div style="font-weight: bold; float: left">matchIndex[]</div>
+                    <div style="margin-left: 100px">对于每个服务器，领导者所知晓的最高日志条目副本序号（初始化为0，而后单调增加）</div>
+                </div>
+            </div>
+        </div>
+        <div style="border: solid 1px #255bac; width:340px; margin-top: 10px; line-height: normal">
+            <div style="background-color: #255bac; color: #FFFFFF; text-align: center; font-weight: bold">增加日志条目RPC</div>
+            <div style="padding-left: 5px; padding-right: 15px; padding-top:5px;">
+                <div style="color: #3e459b">由领导者调用以复制日志条目（5.3节）；也被用来做心跳检测（5.2节）</div>
+                <div style="color: #ae0017; font-weight: bold; margin-top: 15px">参数：</div>
+                <div>
+                    <div style="font-weight: bold; float: left">term</div>
+                    <div style="margin-left: 100px">领导者任期</div>
+                </div>
+                <div style="margin-top: 5px">
+                    <div style="font-weight: bold; float: left">leaderId</div>
+                    <div style="margin-left: 100px">指示领导者，以便跟随者可以进行重定向</div>
+                </div>
+                <div style="margin-top: 5px">
+                    <div style="font-weight: bold; float: left">prevLogIndex</div>
+                    <div style="margin-left: 100px">新条目前一个日志条目的序号</div>
+                </div>
+                <div style="margin-top: 5px">
+                    <div style="font-weight: bold; float: left">prevLogTerm</div>
+                    <div style="margin-left: 100px">prevLogIndex表示的条目中的term</div>
+                </div>
+                <div style="margin-top: 5px">
+                    <div style="font-weight: bold; float: left">entries[]</div>
+                    <div style="margin-left: 100px">存储日志条目（对于心跳检测则为空；为了高效可能会不止发一个）</div>
+                </div>
+                <div style="margin-top: 5px">
+                    <div style="font-weight: bold; float: left">leaderCommit</div>
+                    <div style="margin-left: 100px">领导者的commitIndex</div>
+                </div>
+                <div style="color: #ae0017; font-weight: bold; margin-top: 15px">返回：</div>
+                <div>
+                    <div style="font-weight: bold; float: left">term</div>
+                    <div style="margin-left: 100px">currentTerm，让领导者更新自己</div>
+                </div>
+                <div style="margin-top: 5px">
+                    <div style="font-weight: bold; float: left">success</div>
+                    <div style="margin-left: 100px">如果跟随者包含了同时匹配prevLogIndex和prevLogTerm的日志条目，则返回true</div>
+                </div>
+                <div style="color: #ae0017; font-weight: bold; margin-top: 15px">RPC接收者实现：</div>
+                <ol>
+                <li>如果term < currentTerm，则返回false</li>
+                <li style="margin-top: 5px">如果不存在同时匹配prevLogIndex和prevLogTerm的日志条目，则返回false</li>
+                <li style="margin-top: 5px">如果现有条目和新条目相冲突（表现为相同序号，但是term不一样），则删除已存在的条目及其后的所有条目</li>
+                <li style="margin-top: 5px">添加日志中尚未包含的新条目</li>
+                <li style="margin-top: 5px">如果leaderCommit > commitIndex，则令commitIndex = min(leaderCommit, 最新条目序号)</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    <div style="display: flex; flex-flow: column nowrap; margin-left: 20px">
+        <div style="border: solid 1px #255bac; line-height: normal">
+            <div style="background-color: #255bac; color: #FFFFFF; text-align: center; font-weight: bold">请求选举RPC</div>
+            <div style="padding-left: 5px; padding-right: 15px; padding-top:5px;">
+                <div style="color: #3e459b">由候选人调用，以收集选票(5.2节)</div>
+                <div style="color: #ae0017; font-weight: bold; margin-top: 15px">参数：</div>
+                <div>
+                    <div style="font-weight: bold; float: left">term</div>
+                    <div style="margin-left: 100px">候选人的周期</div>
+                </div>
+                <div style="margin-top: 5px">
+                    <div style="font-weight: bold; float: left">candiateId</div>
+                    <div style="margin-left: 100px">指示请求投票的候选人</div>
+                </div>
+                <div style="margin-top: 5px">
+                    <div style="font-weight: bold; float: left">lastLogIndex</div>
+                    <div style="margin-left: 100px">候选人的最新日志条目序号</div>
+                </div>
+                <div style="margin-top: 5px">
+                    <div style="font-weight: bold; float: left">lastLogTerm</div>
+                    <div style="margin-left: 100px">候选人的最新日志条目term</div>
+                </div>
+                <div style="color: #ae0017; font-weight: bold; margin-top: 15px">返回：</div>
+                <div>
+                    <div style="font-weight: bold; float: left">term</div>
+                    <div style="margin-left: 100px">currentTerm，让候选人更新自己</div>
+                </div>
+                <div style="margin-top: 5px">
+                    <div style="font-weight: bold; float: left">voteGranted</div>
+                    <div style="margin-left: 100px">若为true，表示候选人收到投票</div>
+                </div>
+                <div style="color: #ae0017; font-weight: bold; margin-top: 15px">RPC接收者实现：</div>
+                <ol>
+                <li>如果term < currentTerm，则返回false</li>
+                <li style="margin-top: 5px">如果votedFor为空或者是candidateId，并且候选人日志至少与接收者日志一样新，则对其投票</li>
+                </ol>
+            </div>
+        </div>
+        <div style="border: solid 1px #255bac; margin-top: 10px; line-height: normal">
+            <div style="background-color: #255bac; color: #FFFFFF; text-align: center; font-weight: bold">服务器规则</div>
+            <div style="padding-left: 5px; padding-right: 15px;">
+                <div style="color: #ae0017; font-weight: bold; margin-top: 5px">对于所有服务器：</div>
+                <ul>
+                    <li>如果commitIndex > lastApplied：递增lastApplied，并将log[lastApplied]执行到状态机上。</li>
+                    <li>如果RPC的请求或回应中包含term T > currentTerm：令 currentTerm = T，并转变为跟随者。</li>
+                </ul>
+                <div style="color: #ae0017; font-weight: bold; margin-top: 5px">对于跟随者：</div>
+                <ul>
+                    <li>响应来自候选者和领导者的RPC请求</li>
+                    <li>如果超过election timeout，也没有收到当前领导者的“增加日志条目RPC”或者还没有投票给候选者，那么自己转变为候选者</li>
+                </ul>
+                <div style="color: #ae0017; font-weight: bold; margin-top: 5px">对于候选者：</div>
+                <ul>
+                    <li>一旦转变为候选者，就开始进行选举：</li>
+                        <ul>
+                            <li>递增currentTerm</li>
+                            <li>为自己投一票</li>
+                            <li>重置选举计时器</li>
+                            <li>向其它所有服务器发送“请求投票RPC”</li>
+                        </ul>
+                    <li>如果收到了大多数服务器的投票，则转变为领导者</li>
+                    <li>如果收到了新的领导者的“增加日志条目RPC”，则转变为跟随者</li>
+                    <li>如果超过election timeout，则开始新的选举（即重试）</li>
+                </ul>
+                <div style="color: #ae0017; font-weight: bold; margin-top: 5px">对于领导者：</div>
+                <ul>
+                    <li>选举后，向每台服务器发送初始为空的“增加日志条目RPC”（即心跳）；在空闲期也重复发送，以防止超过election timeout</li>
+                    <li>如果收到客户端的命令：在本地日志中追加条目，并在条目执行到状态机后再回复客户端</li>
+                    <li>如果有一个跟随者的lastLogIndex >= nextIndex：则向其发送包含自nextIndex以后的所有条目的“增加日志条目RPC”</li>
+                        <ul>
+                            <li>若成功：则更新跟随者的nextIndex和matchIndex</li>
+                            <li>如果由于日志不一致导致RPC失败：则递减nextIndex并重试</li>
+                        </ul>
+                    <li>如果存在一个N有 N > commitIndex，且有大多数的 matchIndex[i] >= N，以及 log[N].term == currentTerm：则令 commitIndex = N (5.3节，5.4节)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<p>Raft首先会选举出一个领导者，由他来全权管理日志副本。领导者接受来自客户端的命令条目，复制给其它服务器，并告诉他们何时可以安全的在状态机上执行这些命令。这种强领导机制简化了管理和数据流。一旦领导者宕机或与其它服务器失连，都会重新选举出一个领导者。</p>
+<p>有了领导者机制，Raft将共识问题分解为3个相对独立的子问题：</p>
+<ul>
+<li><p>领导者选举：当一个领导者宕机时，一个新的领导者必须被选举出来。</p>
+</li>
+<li><p>日志复制：领导者必须从客户端接收命令条目，并复制给集群中其它服务器，强制他们的日志和自己的一致。</p>
+</li>
+<li><p>安全性：Raft中的核心安全就是图表3中提到的状态机安全性：如果任一台服务器在状态机上执行了一个特定的命令条目，那么其他服务器在同样的日志序号位置肯定会执行同样的命令。后面会描述Raft是如何保证这一点的。</p>
+</li>
+</ul>
+<blockquote>
+<p>图表3：Raft保证了以下特性任何时候总是为true</p>
+</blockquote>
+<div style="border: solid 1px #255bac; line-height: normal">
+    <div style="background-color: #255bac; color: #FFFFFF; text-align: center; font-weight: bold">Raft关键特性</div>
+    <div style="padding-left: 5px; padding-right: 15px; padding-top:5px;">
+        <div>Election Safety：在指定任期内，最多只有一个领导者被选举出来。</div>
+        <div style="margin-top: 5px">Leader Append-Only：领导者从来不会重写或删除日志条目，它只会向日志中追加条目</div>
+        <div style="margin-top: 5px">Log Matching：如果两个日志包含一个相同索引和任期的条目，则在这个索引之前的所有条目，两个日志都是相同的。</div>
+        <div style="margin-top: 5px">Leader Completeness：如果日志条目是在给定任期内提交的，那么在后续所有任期中，该条目都会记录在领导者日志中</div>
+        <div style="margin-top: 5px">State Machine Safety：如果一个服务器在状态机上执行了一个给定编号的命令条目，那么其他的服务器在相同序号上执行的肯定也是这个命令。</div>
+    </div>    
+</div>
+
+<h3 id="Raft基础"><a href="#Raft基础" class="headerlink" title="Raft基础"></a>Raft基础</h3><p>任何时刻，每台服务器都处于三种状态之一：领导者，跟随者，候选者。正常操作中只有一个领导者，其它都是跟随者。跟随者是被动的，只是简单地回应来自领导者和候选者的请求。领导者处理所有的客户端请求（如果一个客户端连接上一个跟随者，跟随者会将它重定向到领导者服务器上）。下图4描述了三种角色的状态机。</p>
+<p><img src="/source_code/image/raft-2.png" alt></p>
+<p>Raft将时间划分为任意长度的片段，称为任期（term），如下图5所示。任期由连续的整数进行编号。每个任期都由一场选举开始，有1个或多个候选者尝试成为领导者。如果1个候选者赢得选举，那么它将会在这个任期的剩余部分担当领导者角色。在某些情况下，一场选举会以选票分裂而结束。那么这个任期将会以无领导者而终结，一个新的任期（伴随一场新的选举）会很快开始。Raft保证了在给定任期内最多只有1个领导者。</p>
+<p><img src="/source_code/image/raft-3.png" alt></p>
+<p>不同服务器可能在不同时间观察到任期的转换，或者有些情况下一个服务器甚至在整个任期中都没有观察到选举。任期在Raft中就像一个逻辑时钟，可以让服务器检测出过期信息。每一个服务器都存储一个当前任期编号，随着时间单调递增。每当服务器通讯时都会交换当前任期信息，如果一个服务器的任期编号小于另一个服务器，那么它就会更新为较大的那个值。如果一个候选者或者领导者发现自己的任期已经过时，那么它就会立即转变为跟随者角色。如果一个服务器收到了一个过期任期的请求，则直接拒绝这个请求。</p>
+<p>Raft的服务器之间通过RPC进行通信，如果服务器没有及时收到回应，他们会重发RPC请求。为了得到最佳性能，它们会并行发送RPC请求。</p>
+<h3 id="领导者选举"><a href="#领导者选举" class="headerlink" title="领导者选举"></a>领导者选举</h3><p>Raft利用心跳机制来触发领导者选举。当集群起来时，所有的服务器都是跟随者。只要收到合法的RPC请求，它就一直保持跟随者角色。领导者会定期发送心跳（不带任何日志条目的AppendEntries RPC）给所有跟随者以维持地位。如果一个跟随者超过一段时间没有收到任何信息，这段时间被称为<code>election timeout</code>，那么他就认为没有可用的领导者，并开始发起新一轮的选举。</p>
+<p>要开始一个选举，跟随者会自增自己的currentTerm，并转为候选者状态。然后给自己投票，向集群中其它所有服务器并行发送RequestVote RRC请求。候选者保持当前角色，直到如下3种事件任意一个发生：</p>
+<ol>
+<li><p>它自己赢得选举</p>
+</li>
+<li><p>另一个服务器变为领导者</p>
+</li>
+<li><p>当期任期结束，没有任何领导者产生。</p>
+</li>
+</ol>
+<p>在同样任期内，收到超半数服务器投票，则候选者赢得选举。每一个服务器在一个任期内最多只能投一个候选者，基于先来先服务的原则进行投票。超半数规则保证了一个任期最多只有1个候选者赢得选举。一旦一个候选者赢得选举，它将变为领导者，并发送心跳信息给其它所有服务器来建立权威地位，并阻止新的选举。</p>
+<p>对于第2种情况，在等候投票时，候选者可能会收到另一台自称领导者的AppendEntries RPC请求，如果这个领导者的任期大于等于候选者的currentTerm，则候选者承认其领导地位，并变成跟随者角色。否则，后选择会拒绝其RPC请求，并继续保持候选者状态。</p>
+<p>第3种情况则是无人获胜也无人失败：如果一个任期内有很多跟随者变为候选者，投票将会分裂导致没有一个候选者获得超半数投票。这种情况发生时，每个候选者都会超时，并自增任期编号发起新一轮选举，发送新一轮的RequestVote RPC请求。如果没有额外的措施，这种分裂投票的情况会无限重复下去。</p>
+<p>Raft采用<strong>随机选举超时</strong>来保证分裂投票很少发生并能够被很快解决。为了防止分裂投票的产生，<code>election timeout</code>是在一个固定的间隔池中随机选择的（比如： 150 - 300ms），这在大多数情况下保证了只有一个服务器会超时，它赢得选举并在其他服务器超市之前发送心跳。同样的机制也用来处理分裂投票产生以后的情况。每一个候选者在重新发起选举前，都会重新随机选择自己的<code>election timeout</code>，这就降低了再次分裂的可能性。</p>
+<blockquote>
+<p>选举就是一个表现可理解性的生动的例子。以前他们是想通过一个排名系统来进行选举，后来它们发现排名系统有很多复杂的细节，还是不如随机重试来的简单易懂。</p>
+</blockquote>
+<h3 id="日志复制"><a href="#日志复制" class="headerlink" title="日志复制"></a>日志复制</h3><p>一旦选举产生出领导者，他就开始服务客户端请求。每个客户端请求都会包含1个操作副本状态机的命令。领导者将其作为一个条目追加到日志中，且向其它服务器并行发送AppendEntries RPC请求来复制这个条目。当条目都被安全的复制后，领导者执行该条目命令，并响应客户端返回结果。<strong>如果跟随者崩溃或者运行缓慢，再或是网络丢包，领导者都会无限重试发送AppendEntries RPC请求（即使它已经响应了客户端返回结果），直到所有的跟随者最终存储了所有的条目后才停止发送。</strong></p>
+<p>日志如下图6进行组织。每个条目包含一个状态机命令，和收到这个条目时的任期。这个任期编号用来检测日志不一致情况，以保证图表3中的一些特性。每个条目还有一个索引来标记它在日志中的位置。</p>
+<p><img src="/source_code/image/raft-4.png" alt></p>
+<p>领导者决定何时可以安全的执行一个条目到状态机上。这样的条目被称为已提交（committed）。Raft保证已提交条目是持久的，并最终会在所有可用状态机上得以执行。<strong>只要领导者创建了条目，并将它复制到了超半数服务器（包括它自己）上，那么该条目就是已提交的（如上图6中的条目7）。</strong>这也确保了领导者日志中包含了之前的领导者提交的所有条目。领导者持续跟踪他所知晓的已提交条目的最高索引，并在AppendEntries RPC中包含这个索引值（即使心跳中也包含），以便其他服务器最终能够知晓。一旦一个跟随者知晓某一个条目已提交，他就会按日志顺序，在本地状态机上执行这个条目。</p>
+<p>Raft维护如下2点，来构建图表3中提到的<code>Log Matching</code>特性：</p>
+<ol>
+<li><p>在不同日志中，对于相同索引和相同任期的两个条目，它们存储相同的命令。</p>
+</li>
+<li><p>在不同日志中，对于相同索引和相同任期的两个条目，它们之前的所有条目也都是相同的。</p>
+</li>
+</ol>
+<p>第1点来自于Raft的事实：一个领导者在一个任期内，对于一个给定索引，只会创建一个条目，且条目不会在日志中改变位置。第2点由AppendEntries中一个简单的一致性检查来保证。在发送AppendEntries RPC请求时，领导者会将新条目的前一个条目的索引和任期都包含进去，如果跟随者在自己的日志中没有找到匹配的条目，它就会拒绝新条目。这种一致性检查类似于科学归纳法步骤：日志初始为空的状态满足<code>Log Matching</code>特性，然后每当日志扩展时，一致性检查都会保持这种特性。最终，只要AppendEntries返回成功，领导者就知道这个跟随者满足了<code>Log Matching</code>。</p>
+<p>在正常情况下，领导者日志和跟随者日志是一致的，所以一致性检查从不失败。但是，当领导者崩溃则会导致日志不一致（老的领导者可能没有把所有条目都全部复制出来）。这种不一致会随着一系列领导者和跟随者宕机而情况加剧。下图7图示了跟随者日志可能和新的领导者不一致的情况。跟随者缺少条目而领导者有，跟随者有该条目而领导者没有（说明条目未被提交），或者两种情况混合在一起。日志不一致可能会持续多个任期。</p>
+<blockquote>
+<p>图7：演示了6种日志不一致的场景，方块代表条目，数字代表任期。（ab）表示日志缺失，（cd）表示包含未提交的条目。或者（ef）为两者都有。对于（f）场景，可能它在任期2是领导者，添加了一些条目但还未提交就挂掉了，然后快速重启，并在任期3又成为领导者，又添加了一些新条目，但是在任期2和任期3的条目还未提交之前，它又宕机了并持续了多个任期都没再起来。</p>
+</blockquote>
+<p><img src="/source_code/image/raft-5.png" alt></p>
+<p>在Raft中，领导者通过强制跟随者复制自己来处理不一致问题。这意味着跟随者冲突的日志都会被重写为领导者的条目。为了保证跟随者的日志重新一致，领导者必须能够找到两者最近一致的条目，并删除跟随者日志中这个一致点以后的所有条目，并将领导者日志中该一致点以后的所有条目发送给跟随者。这些操作都发生在AppendEntries RPC中的一致性检查后。领导者为每个跟随者维护一个<code>nextIndex</code>，表示要发送给跟随者的下一个条目索引。当领导者刚刚上任时，它会把所有<code>nextIndex</code>初始化为自己日志中最后一个条目的下一个索引（上图7中为11）。如果一个跟随者的日志不一致，则AppendEntries RPC中的一致性检查会失败。收到跟随者的拒绝后，领导者将会递减nextIndex并重试RPC，最终nextIndex会到达两者日志一致的索引处，此时，AppendEntries RPC返回成功，并删除掉跟随者的所有冲突日志，并追加领导者的日志。一旦RPC返回成功，就可以确信跟随者日志已经和领导者保持一致，并在该周期的剩余时间里都将一直保持下去。</p>
+<blockquote>
+<p>论文中提到了<code>nextIndex</code>的一个递减优化方案，如果是一个任期的条目产生了冲突，则说明这个任期中的所有条目都是冲突的，即不是每次减1，而是每次减跟随者日志中一个任期的跨度，这样可以更快找到一致点，但是实践中他们并不推荐这么做，因为他们认为宕机很少发生，不一致的地方也不会特别多。</p>
+</blockquote>
+<p>这种强制一致机制，可以让领导者在恢复日志一致性时，无需额外特殊操作，只需要对失败的RPC进行简单的回应，就能自动将集群中的日志副本趋于一致。领导者从来不会重写或删除自己日志中的条目（图表3中的<code>Leader Append-Only</code>特性）。</p>
+<p>这种日志复制机制展示了之前提到的理想情况下的共识特性：只要大多数服务器可用，Raft就可以接受，复制，执行新的条目；在正常情况下一个新条目只需要一轮RPC就可以复制到大多数服务器中；集群中一个服务器缓慢并不影响整个集群的性能。</p>
+<h3 id="安全性"><a href="#安全性" class="headerlink" title="安全性"></a>安全性</h3><p>前面讲述了如何选举，如何复制日志，但是，这些机制并不足以保证每个状态机按照相同的顺序执行了相同的命令。例如：<strong>当领导者提交一些条目时，一个跟随者宕机了，然后它可能被选为领导者然后用新条目重写了这些条目。结果，不同的虚拟机可能就会执行不同的命令序列。</strong></p>
+<p>Raft会通过一些限制，关于什么样的服务器才能够被选为领导者来完善算法。<strong>这个限制保证了任意任期的领导者都包含之前任期已提交的所有条目（图表3中的<code>Leader Completeness</code>特性）。</strong></p>
+<h4 id="领导者选举中的限制"><a href="#领导者选举中的限制" class="headerlink" title="领导者选举中的限制"></a>领导者选举中的限制</h4><p>任何基于领导制的共识算法中，领导者都必须最终拥有所以已提交的日志条目。Raft采用了一种很简单的方式来保证这一点，并且这种方式也保证了日志条目的传输只会有一个方向，即领导者向跟随者，并且领导者从来不会重写自己日志中已经存在的条目。</p>
+<p>这种方式就是：除非一个候选者包含了所有已经提交的条目，否则它不可能获得投票赢得选举。一个候选者必须和集群中大多数服务器通信收集选票才能赢得选举，这就意味着每一个已提交条目至少在这些服务器中的一个上面存在着。如果候选者的日志比大多数服务器的日志至少一样新（<code>up-to-date</code>），那就意味着它存有了所有已提交条目。RequestVote RPC实现了这个限制条件：请求中包含了候选者日志信息，投票者会检查候选者日志是否和自己日志一样新，如果落后于自己的日志，则拒绝投票。</p>
+<p>Raft通过比较最后一个条目的索引和任期，来判断哪个日志更新。如果索引相同，任期不同，则任期越大则越新；如果任期相同索引不同，则索引越大则越新。</p>
+<h4 id="提交之前任期的条目（重要）"><a href="#提交之前任期的条目（重要）" class="headerlink" title="提交之前任期的条目（重要）"></a>提交之前任期的条目（重要）</h4><p>一旦一个当前任期的条目存储在了大多数的服务器上，领导者就知道这个条目是已提交的了。但若一个领导者在提交日志之前宕机了，后续的领导者将会尝试完成该条目的复制。然而，后续的领导者和当前任期领导者不一样，它无法立马知晓一个之前任期的条目是否已提交，即使它已经存储到了大多数服务器上。下图8展示了这种情况，一个旧条目已经存储到了大多数服务器上，但依然会被后续领导者重写掉。</p>
+<blockquote>
+<p>图8：演示了一个领导者为何不能确定之前任期条目的提交状态。在（a）中S1是领导者并部分复制了2号条目。在（b）中S1宕机，S5在任期3当选为领导者（来自S3,S4和自己的投票），并且收到了一个不同的2号条目。在（c）中S5宕机，S1重启并成为领导者，它继续复制。此时，2号条目复制到了大多数服务器上，但还没有提交。如果在（d）中S1宕机了，S5仍然有可能当选为领导者（来自S2，S3和S4的投票），那么它就会用任期3的条目来重写其它服务器的2号条目。但是，如果S1在宕机前只复制当前任期的条目到大多数服务器上，就像（e）那样，然后该条目就是已提交状态，S5就不会赢得选举，此时所有之前的条目也都是已提交的了。</p>
+</blockquote>
+<p><img src="/source_code/image/raft-6.png" alt></p>
+<p>为了消除图8中的问题，<strong>Raft从不会通过副本数量统计来提交之前任期的条目。它只会通过计数来确定领导者当前任期的条目是否已提交。只要一个当前任期的条目已提交，那么根据<code>Log Matching</code>特性，所有之前的条目就间接的被提交了。</strong>有一些场景，领导者可以安全的确定一个老任期条目是否已提交（比如，条目被存储到了所有服务器上），但是Raft为了简化采取了更保守的措施。</p>
+<h4 id="跟随者和候选者崩溃的情况"><a href="#跟随者和候选者崩溃的情况" class="headerlink" title="跟随者和候选者崩溃的情况"></a>跟随者和候选者崩溃的情况</h4><p>前面讨论了很多领导者崩溃的情况。对于跟随者和候选者宕机的场景，处理的方法是一致的，且也很简单：如果一个跟随者或者候选者宕机了，那么后续发送给它的RequestVote和AppendEntries RPC都会失败，Raft就会无限重发来处理这种场景。如果宕机服务器重新启动，那么RPC就会成功；如果一个服务器在处理了RPC之后但返回结果之前宕机了，那么它就会在重启之后再次收到同样的RPC请求。Raft中的RPC都是<a href="https://baike.baidu.com/item/%E5%B9%82%E7%AD%89/8600688?fr=aladdin" target="_blank" rel="noopener">幂等</a>的，所以重复请求没有副作用。例如一个跟随者收到了AppendEntries请求包含一条已经存在的条目，它就会直接忽略掉这个条目。</p>
+<h4 id="计时和可用性"><a href="#计时和可用性" class="headerlink" title="计时和可用性"></a>计时和可用性</h4><p>Raft的原则之一就是不能依赖于计时来保证安全性：系统不能因为一些事件处理的快或者慢就返回不正确的结果。然而，可用性（系统及时响应客户端的能力）必然依赖计时。</p>
+<p>领导者选举是Raft中计时尤为关键的场景。只要系统满足如下计时条件，Raft就能够选出并维护一个稳定的领导者：</p>
+<p>$$<br>broadcastTime \ll electionTimeout \ll MTBF<br>$$</p>
+<p>其中<code>broadcastTime</code>是发送RPC到收到反馈的平均时长，<code>electionTimeout</code>是之前提到的和选举相关的超时时长，<code>MTBF</code>（平均无故障时间）则是一个服务器两次宕机中间能够正常运行的平均时长。广播耗时应该小于选举超时一个数量级，以便领导者能够可靠的发送心跳消息；选举超时应该小于MTBF几个数量级以便系统能够稳定运行。<strong>当领导者崩溃时，整个系统将大约在electionTimeout时间内不可用。</strong></p>
+<p>broadcastTime和MTBF是底层系统的自有属性，而electionTimeout则是需要配置的。Raft的RPC通常需要接收者做一些持久化存储操作，所以broadcastTime通常在0.5 - 20ms之间，所以electionTimeout可以是10 - 500 ms之间。</p>
+<h2 id="集群成员变更"><a href="#集群成员变更" class="headerlink" title="集群成员变更"></a>集群成员变更</h2><p>在实际应用中，往往会需要改变集群配置，比如替换掉宕机的服务器，或者修改副本数量等。全部离线修改再上线是不合适的，因此Raft在设计之初已经支持了自动配置更新。</p>
+<p>为了使配置变更机制安全起见，在过渡期不得有两个领导者在同一任期内当选。然而，服务器直接从旧配置切换到新配置的任何方法都是不安全的。也不可能同时自动切换所有服务器，因此在过渡期，集群很可能会分裂成2个独立大多数。见下图10。</p>
+<blockquote>
+<p>图10：将旧配置直接转换为新配置是不安全的，因为不同的服务器会在不同时间切换。图中所示集群由3个服务器变为5个时，就存在那个时间段，会出现两个不相交的大多数，于是可能在同一任期选举出2个不同的领导者，一个来自于$$C_{old}$$半数服务器投票，另一个来自于$C_{new}$半数服务器投票。</p>
+</blockquote>
+<p><img src="/source_code/image/raft-7.png" alt></p>
+<p>为了保证安全（即正确性），配置变更必须采用两个阶段的方案。在Raft中，集群首先切换到一种过渡的配置，我们称之为<strong>联合共识（<code>joint consensus</code>）</strong>，一旦达成了联合共识，系统再切换到新配置上。联合共识将新旧配置结合在了一起：</p>
+<ul>
+<li><p>日志条目会复制到所有服务器上，包括旧配置和新配置。</p>
+</li>
+<li><p>任何配置的任一服务器都有可能成为领导者。</p>
+</li>
+<li><p>达成一致（比如选举或者条目提交）需要同时满足旧配置的大多数和新配置的大多数。</p>
+</li>
+</ul>
+<p>联合共识允许各个服务器不用同时过渡，并且能够保证安全。并且允许集群在配置变更期间仍然能够继续为客户端服务。</p>
+<p>集群配置作为日志副本中的特殊条目被存储和通信。下图11演示了配置变更的流程。当领导者收到从$$C_{old}$$变为$$C_{new}$$变更配置的请求时，它会将用于联合共识的配置（图11中的$$C_{old, new}$$）存储为一个日志条目，并复制给其它的服务器。一旦一个服务器将这个配置条目加入到自己的日志中，它就会在后续的所有决策中运用这些配置项（<strong>服务器总是用日志中最新的配置条目，而不管这个条目是否已经提交</strong>）。这就意味着领导者会使用$$C_{old, new}$$规则来决定$$C_{old, new}$$日志条目何时被提交。如果领导者崩溃，那么新的领导者会在$$C_{old}$$或者$$C_{old, new}$$配置下被选中，这取决于获胜的候选者是否已经收到了$$C_{old, new}$$条目。任何情况下，在该阶段$$C_{new}$$都不可能单独参与决策。</p>
+<blockquote>
+<p>图11，虚线表示配置条目已生成但还没提交，实线表示最近已提交的配置条目。</p>
+</blockquote>
+<p><img src="/source_code/image/raft-8.png" alt></p>
+<p>一旦$$C_{old, new}$$条目被提交，那么$$C_{old}$$和$$C_{new}$$都不再能独立的做决策，并且<code>Leader Completeness</code>属性保证了只有拥有$$C_{old, new}$$条目的服务器才能被选为领导者。此时领导者就可以安全的创建一个描述$$C_{new}$$配置的日志条目，并复制给集群服务器。同样，这个条目一旦到达服务器就立马生效。当新配置在$$C_{new}$$规则下被提交后，老配置就无用了，并且那些不在新配置中的服务器就可以关闭了。如上图11所示，任何时刻，$$C_{old}$$和$$C_{new}$$都不可能同时且独立的做决策，这保证了安全性。</p>
+<p>更改配置还有3个问题需要讲一下。第1个问题是新配置的服务器有可能初始没有存储任何日志条目。如果它们此时加入了集群，需要一段时间才能赶上集群进度，在这段时间里它可能不会提交新条目。为了避免可用性问题，Raft在配置更改前引入了一个额外阶段，在该阶段中新加入集群的服务器是非投票成员（领导者复制条目给它们，但它们不在大多数考虑范围内）。一旦新服务器赶上了进度，配置更改的过程就如上面所述进行。</p>
+<p>第2个问题是集群领导者可能不是新配置的一部分。在这种情况下，领导者在提交完$$C_{new}$$条目后就会下台（转为跟随者状态）。这就意味着有一段时间（确切的说是$$C_{new}$$产生到提交的这段时间），领导者管理着一个并不包含自己的集群，它复制条目，但计算大多数时并不包含自己。领导者转换状态发生在$$C_{new}$$被提交时，因为这是新配置可以独立做决定的最初时刻。</p>
+<p>第3个问题是移除的服务器（即那些不在$C_{new}$中的服务器）可能破坏集群。这些服务器不会再收到心跳信息，所以他们会超时并发起新一轮选举。于是它们会用新任期编号发送RequestVote RPC请求，这会引起现任领导者转变为跟随者状态。一个新的领导者最终被选举出来，但是被移除的服务器又会超时并重新一轮打扰的过程，最终导致集群不可用。为了防止这个问题，当服务器们相信目前的领导者存在时，它们会忽视掉RequestVote RPC请求。具体来说，如果一个服务器在最小electionTimeout时间内收到了一个RequestVote RPC请求，它不会更新任期也不会对其投票。这种做法并不影响正常的选举，因为正常的选举是每个服务器都至少等待了一个最小electionTimeout后才会发起选举。</p>
+<h1 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h1><ul>
+<li><p><a href="https://raft.github.io/" target="_blank" rel="noopener">https://raft.github.io/</a></p>
+</li>
+<li><p><a href="https://raft.github.io/raft.pdf" target="_blank" rel="noopener">https://raft.github.io/raft.pdf</a></p>
+</li>
+<li><p><a href="https://baike.baidu.com/item/%E5%B9%82%E7%AD%89/8600688?fr=aladdin" target="_blank" rel="noopener">https://baike.baidu.com/item/%E5%B9%82%E7%AD%89/8600688?fr=aladdin</a></p>
+</li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/05/28/自私挖矿/" rel="next" title="自私挖矿">
+                <i class="fa fa-chevron-left"></i> 自私挖矿
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/06/12/P2P网络-Kademlia协议/" rel="prev" title="P2P网络--Kademlia协议">
+                P2P网络--Kademlia协议 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Raft是什么"><span class="nav-number">1.</span> <span class="nav-text">Raft是什么</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#共识是什么"><span class="nav-number">2.</span> <span class="nav-text">共识是什么</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Raft可视化"><span class="nav-number">3.</span> <span class="nav-text">Raft可视化</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#笔记"><span class="nav-number">4.</span> <span class="nav-text">笔记</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#概述"><span class="nav-number">4.1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#介绍"><span class="nav-number">4.2.</span> <span class="nav-text">介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#副本状态机"><span class="nav-number">4.3.</span> <span class="nav-text">副本状态机</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Paxos的问题"><span class="nav-number">4.4.</span> <span class="nav-text">Paxos的问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#可理解性设计"><span class="nav-number">4.5.</span> <span class="nav-text">可理解性设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Raft共识算法"><span class="nav-number">4.6.</span> <span class="nav-text">Raft共识算法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Raft基础"><span class="nav-number">4.6.1.</span> <span class="nav-text">Raft基础</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#领导者选举"><span class="nav-number">4.6.2.</span> <span class="nav-text">领导者选举</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#日志复制"><span class="nav-number">4.6.3.</span> <span class="nav-text">日志复制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安全性"><span class="nav-number">4.6.4.</span> <span class="nav-text">安全性</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#领导者选举中的限制"><span class="nav-number">4.6.4.1.</span> <span class="nav-text">领导者选举中的限制</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#提交之前任期的条目（重要）"><span class="nav-number">4.6.4.2.</span> <span class="nav-text">提交之前任期的条目（重要）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#跟随者和候选者崩溃的情况"><span class="nav-number">4.6.4.3.</span> <span class="nav-text">跟随者和候选者崩溃的情况</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#计时和可用性"><span class="nav-number">4.6.4.4.</span> <span class="nav-text">计时和可用性</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#集群成员变更"><span class="nav-number">4.7.</span> <span class="nav-text">集群成员变更</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考链接"><span class="nav-number">5.</span> <span class="nav-text">参考链接</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

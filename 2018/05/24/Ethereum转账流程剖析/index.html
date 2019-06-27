@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  在js console中转账ETH在我之前的文章《Ethereum初探》中，已经详述了在以太坊私链中转账的操作，可以在那里细细查看。 背后流程Geth Console执行JS通用流程在探讨sendTransaction转账流程之前，让我们先看下JS执行的通用流程。如下图所示。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Ethereum转账流程剖析">
+<meta property="og:url" content="http://www.huamo.online/2018/05/24/Ethereum转账流程剖析/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  在js console中转账ETH在我之前的文章《Ethereum初探》中，已经详述了在以太坊私链中转账的操作，可以在那里细细查看。 背后流程Geth Console执行JS通用流程在探讨sendTransaction转账流程之前，让我们先看下JS执行的通用流程。如下图所示。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/geth-console%E6%89%A7%E8%A1%8Cjs%E9%80%9A%E7%94%A8%E6%B5%81%E7%A8%8B.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/otto%E6%B3%A8%E5%85%A5Go%E6%96%B9%E6%B3%95%E7%A4%BA%E4%BE%8B.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/eth-sendTransaction1.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/eth-sendTransaction2.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/eth-sendTransaction4.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/eth-sendTransaction3.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/eth-sendTransaction5.png">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.967Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Ethereum转账流程剖析">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  在js console中转账ETH在我之前的文章《Ethereum初探》中，已经详述了在以太坊私链中转账的操作，可以在那里细细查看。 背后流程Geth Console执行JS通用流程在探讨sendTransaction转账流程之前，让我们先看下JS执行的通用流程。如下图所示。">
+<meta name="twitter:image" content="http://www.huamo.online/source_code/image/geth-console%E6%89%A7%E8%A1%8Cjs%E9%80%9A%E7%94%A8%E6%B5%81%E7%A8%8B.png">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2018/05/24/Ethereum转账流程剖析/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Ethereum转账流程剖析 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2018/05/24/Ethereum转账流程剖析/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Ethereum转账流程剖析
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-05-24 11:22:40" itemprop="dateCreated datePublished" datetime="2018-05-24T11:22:40+08:00">2018-05-24</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/ethereum/" itemprop="url" rel="index"><span itemprop="name">ethereum</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h1 id="在js-console中转账ETH"><a href="#在js-console中转账ETH" class="headerlink" title="在js console中转账ETH"></a>在<code>js console</code>中转账<code>ETH</code></h1><p>在我之前的文章《<a href="http://www.huamo.online/2018/02/07/Ethereum%E5%88%9D%E6%8E%A2/">Ethereum初探</a>》中，已经详述了在以太坊私链中转账的操作，可以在那里细细查看。</p>
+<h1 id="背后流程"><a href="#背后流程" class="headerlink" title="背后流程"></a>背后流程</h1><h2 id="Geth-Console执行JS通用流程"><a href="#Geth-Console执行JS通用流程" class="headerlink" title="Geth Console执行JS通用流程"></a>Geth Console执行JS通用流程</h2><p>在探讨<code>sendTransaction</code>转账流程之前，让我们先看下JS执行的通用流程。如下图所示。<a id="more"></a></p>
+<p><img src="/source_code/image/geth-console%E6%89%A7%E8%A1%8Cjs%E9%80%9A%E7%94%A8%E6%B5%81%E7%A8%8B.png" alt></p>
+<p>图中展示了从<code>geth console</code>启动<code>jsre</code>，到用户输入js代码，解释器执行代码，并通过RPC调用实际的go方法的完整流程。这个流程是通用的，即无论你输入什么js代码，刚开始的阶段都是如此，下面让我来详细剖析一下各个环节。</p>
+<h3 id="监听命令阶段"><a href="#监听命令阶段" class="headerlink" title="监听命令阶段"></a>监听命令阶段</h3><ul>
+<li>[1]当用户在命令行输入<code>geth console</code>启动客户端时，会调用<code>localConsole()</code>方法，启动一个全新的geth节点，同时附加上一个JS console，亦即JSRE。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// cmd/geth/consolecmd.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">localConsole</span><span class="params">(ctx *cli.Context)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	console, err := console.New(config)</span><br><span class="line">	console.Welcome() <span class="comment">// 打印欢迎信息</span></span><br><span class="line">	console.Interactive()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码中列出了3个比较关键的方法。<code>console.New()</code>会启动一个console实例，这个console实例包含了一个JSRE对象。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Console <span class="keyword">struct</span> &#123;</span><br><span class="line">	client   *rpc.Client  <span class="comment">// RPC client to execute Ethereum requests through</span></span><br><span class="line">	jsre     *jsre.JSRE   <span class="comment">// JavaScript runtime environment running the interpreter</span></span><br><span class="line">	prompt   <span class="keyword">string</span>       <span class="comment">// Input prompt prefix string</span></span><br><span class="line">	prompter UserPrompter <span class="comment">// Input prompter to allow interactive user feedback</span></span><br><span class="line">	histPath <span class="keyword">string</span>       <span class="comment">// Absolute path to the console scrollback history</span></span><br><span class="line">	history  []<span class="keyword">string</span>     <span class="comment">// Scroll history maintained by the console</span></span><br><span class="line">	printer  io.Writer    <span class="comment">// Output writer to serialize any display strings to</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>同时，<code>console.New()</code>中还包含了<code>console</code>的初始化工作：<code>console.init()</code>。这个初始化工作有2点比较重要：</p>
+<ol>
+<li><p>加载<code>web3.js</code>文件，并注入到<code>JSRE</code>中</p>
+</li>
+<li><p>将<code>rpc</code>传输接口注入到<code>JSRE</code>中：<code>jethObj.Object().Set(&quot;send&quot;, bridge.Send)</code>，这为之后执行JS代码提供了通信基础。其中<code>bridge.go</code>正如名字表示的那样，是一个工具方法集合，将js运行时环境和Go RPC调用桥接起来。</p>
+</li>
+</ol>
+<blockquote>
+<p>注入的方式为<code>otto</code>原生提供，它允许你自定义Go方法，并注入到解释器中，这样你就可以直接在js代码中调用这个go方法。如下图所示</p>
+</blockquote>
+<p><img src="/source_code/image/otto%E6%B3%A8%E5%85%A5Go%E6%96%B9%E6%B3%95%E7%A4%BA%E4%BE%8B.png" alt></p>
+<p><code>Welcome()</code>没什么好说，打印欢迎信息。</p>
+<ul>
+<li><p>[2]接下来的console.Interactive()则是略为关键，它开启了一个交互式会话，包含2个关键的通道(<code>chan</code>)：<code>scheduler</code>, <code>abort</code>。前者监听用户输入，后者则接受用户强行结束会话的信号。</p>
+<p>  Interactive()单独启动一个goroutine，将用户的输入放在scheduler通道中，然后在主进程中使用select获取两个通道的输出。</p>
+</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// console/console.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Console)</span> <span class="title">Interactive</span><span class="params">()</span></span> &#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>[3]在获取到用户的输入后，接下来就开始执行代码，这里面借用了一个第三方库<code>github.com/robertkrimen/otto</code>，它是一个<code>golang</code>实现的<code>js</code>解释器。在<code>scheduler</code>通道获取用户输入后，会使用<code>jsre.Evaluate()</code>方法执行<code>input</code>内容，该方法内部直接调用<code>otto</code>的<code>vm.Run()</code>方法，传入解释器并运行。如前所述，在<code>console.init()</code>过程中，<code>jsre</code>中已经注入了<code>web3.js</code>和<code>send</code>，所以实际执行过程中，都会通过<code>bridge.Send()</code>将方法<code>RPC</code>到以太坊的<code>API</code>服务中去执行，并返回执行结果。</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// 调用栈</span></span><br><span class="line">c.Evaluate(input) -&gt; c.jsre.Evaluate(statement, c.printer) -&gt; vm.Run(code)</span><br><span class="line"></span><br><span class="line"><span class="comment">// console/console.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Console)</span> <span class="title">Evaluate</span><span class="params">(statement <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// internal/jsre/jsre.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(self *JSRE)</span> <span class="title">Evaluate</span><span class="params">(code <span class="keyword">string</span>, w io.Writer)</span> <span class="title">error</span></span> &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// vendor/github.com/robertkrimen/otto/otto.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(self Otto)</span> <span class="title">Run</span><span class="params">(src <span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(Value, error)</span></span> &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// console/bridge.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *bridge)</span> <span class="title">Send</span><span class="params">(call otto.FunctionCall)</span> <span class="params">(response otto.Value)</span></span> &#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="发送请求"><a href="#发送请求" class="headerlink" title="发送请求"></a>发送请求</h3><p>上面说过，基本上所有的方法都是通过<code>console/bridge.go</code>中的<code>bridge.Send()</code>方法发送出去，我在该方法中加了一条调试语句，可以看到在请求发送前，数据包是什么样的。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// console/bridge.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(b *bridge)</span> <span class="title">Send</span><span class="params">(call otto.FunctionCall)</span> <span class="params">(response otto.Value)</span></span> &#123;</span><br><span class="line">	<span class="comment">//...</span></span><br><span class="line">	log.Info(<span class="string">"--&gt;[my]check bridge send"</span>, <span class="string">"reqs"</span>, reqs)</span><br><span class="line">	<span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/source_code/image/eth-sendTransaction1.png" alt></p>
+<p>从图中可以看出，例如<code>eth.accounts</code>，<code>personal.unlockAccount()</code>，<code>eth.sendTransaction()</code>这些方法都走到了<code>Send()</code>中。其中<code>eth.sendTransaction()</code>这个js方法对应于<code>eth_sendTransaction()</code>的golang方法，而传参是一个结构体对象。</p>
+<blockquote>
+<p>请求reqs其实是一个数组，也就是说可以支持批量发送请求，在<code>Send()</code>代码中，也是用一个for循环遍历发送请求的。</p>
+<p><code>reqs</code>中的<code>ID</code>用以标记请求编号，这样收到<code>resp</code>后，可以用同样的<code>ID</code>标记它，这样好对应起来。</p>
+</blockquote>
+<p>如果你在<code>go-ethereum</code>搜<code>eth_sendTransaction()</code>这个方法，会很失望，并没有想要的方法声明。问题的关键是<code>bridge</code>是如何将<code>reqs</code>请求<code>send</code>出去的，看起来是又做了一层处理，发送代码为<code>b.client.Call(&amp;result, req.Method, req.Params...)</code>。所以我们需要看看<code>Call()</code>的实现。<strong>好吧，失算了，Call()并没有做什么特殊处理，只是包装了一个msg，并将其发送了出去。</strong></p>
+<h3 id="接受请求"><a href="#接受请求" class="headerlink" title="接受请求"></a>接受请求</h3><p>ok，既然走到<code>rpc/client.go</code>中的<code>send()</code>方法也并没有什么特殊处理，那么只能到<code>rpc/server.go</code>中寻找<code>eth_sendTransaction()</code>的答案了。</p>
+<p><img src="/source_code/image/eth-sendTransaction2.png" alt></p>
+<p>由于我们是<code>geth attach</code>方式运行的<code>jsre</code>，所以是通过<code>IPC</code>方式和服务端进行的通信，这里重点查看<code>IPC RPC</code>服务端的逻辑。</p>
+<p>而玄机就在<code>rpc/server.go</code>的<code>readRequest()</code>方法中，该方法就像一个预处理器，会读取一批次请求数据，解析数据，将结果递交上层<code>serveRequest()</code>方法，而后者则会递交给<code>handle()</code>方法，通过反射调用对应的方法，并将结果返回给客户端。</p>
+<p>对于<code>readRequest()</code>方法，它首先通过调用<code>rpc/json.go</code>中的<code>parseRequest()</code>方法，将请求中的Method进行处理，这里便给出了<code>eth_sendTransaction()</code>的处理方案。让我们看看代码中是如何处理的。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// rpc/json.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">parseRequest</span><span class="params">(incomingMsg json.RawMessage)</span> <span class="params">([]rpcRequest, <span class="keyword">bool</span>, Error)</span></span> &#123;</span><br><span class="line">...</span><br><span class="line"><span class="comment">// serviceMethodSeparator = "_"</span></span><br><span class="line">elems := strings.Split(in.Method, serviceMethodSeparator)</span><br><span class="line">...</span><br><span class="line"><span class="keyword">return</span> []rpcRequest&#123;&#123;service: elems[<span class="number">0</span>], method: elems[<span class="number">1</span>], id: &amp;in.Id, params: in.Payload&#125;&#125;, <span class="literal">false</span>, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>所以，对于我们在<code>jsre</code>中输入的<code>eth.sendTransaction()</code>这样的命令，客户端会包装为<code>eth_sendTransaction</code>作为<code>Method</code>发送给远程服务器，而到了服务端，则会拆分这个字符串，并把<code>eth</code>作为服务名<code>service</code>，而把<code>sendTransaction</code>作为方法名<code>method</code>交给后续处理。</p>
+<h3 id="RPC服务端启动详解"><a href="#RPC服务端启动详解" class="headerlink" title="RPC服务端启动详解"></a>RPC服务端启动详解</h3><p>服务端的这种解析请求的方式需要说明一下，这来自于<code>RPC</code>服务端启动的实现，这里面有很多独到的设计，大量用到了<code>Golang</code>的反射特性，可以让各个<code>API</code>分散在独立的模块中，而调用则可以统一在一个<code>handle()</code>中。</p>
+<p><img src="/source_code/image/eth-sendTransaction4.png" alt></p>
+<p>在以太坊RPC服务端启动的时候，实际上是位于P2P服务启动之后，<strong>恰好，我完整的替换过以太坊的P2P实现，所以对P2P这一块还算略微熟悉，哈哈</strong>。P2P包含了两层，底层KAD实现通信基础设施，上层运行各种子协议，包括<code>eth / shh / bzz / les</code>等协议，实现了以太坊的大部分主体功能。这里有张图，简要讲述了以太坊的节点发现原理。</p>
+<p><img src="/source_code/image/eth-sendTransaction3.png" alt></p>
+<p>再扯回来，节点可以统一管理各种子服务，之所以称为子服务更准确点，是因为它包含了P2P的子协议，也包含了RPC的API。以太坊首先在各个独立模块中，实现了这些子服务，在<code>geth</code>启动时，会将这些子服务实例化为<code>node/service.go:Service</code>类型（实现了这个接口的所有方法即可），并装入到<code>map[reflect.Type]Service</code>哈希表中。其中主键是这个子服务结构体的数据类型。这个过程我们称之为<strong>注册子服务</strong>。</p>
+<p>下面用注册<code>eth</code>子服务来举例说明</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// cmd/utils/flags.go</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 先把服务创建方法托管好</span></span><br><span class="line"><span class="comment">// 定义一个可以创建eth.Ethereum对象的方法，将其托管到node.serviceFuncs中</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">RegisterEthService</span><span class="params">(stack *node.Node, cfg *eth.Config)</span></span> &#123;</span><br><span class="line">...</span><br><span class="line">	err = stack.Register(<span class="function"><span class="keyword">func</span><span class="params">(ctx *node.ServiceContext)</span> <span class="params">(node.Service, error)</span></span> &#123;</span><br><span class="line">		fullNode, err := eth.New(ctx, cfg)</span><br><span class="line">		...</span><br><span class="line">		<span class="keyword">return</span> fullNode, err</span><br><span class="line">	&#125;)</span><br><span class="line">...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// node/node.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(n *Node)</span> <span class="title">Start</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	...</span><br><span class="line">	<span class="comment">// 调用托管的方法，实例化服务，并放到哈希表中</span></span><br><span class="line">	services := <span class="built_in">make</span>(<span class="keyword">map</span>[reflect.Type]Service)</span><br><span class="line">	<span class="keyword">for</span> _, constructor := <span class="keyword">range</span> n.serviceFuncs &#123;</span><br><span class="line">		...</span><br><span class="line">		service, err := constructor(ctx) <span class="comment">// 其实这里constructor方法就是返回一个`&amp;eth.Ethereum结构体`，所以service是个结构体。</span></span><br><span class="line">		...</span><br><span class="line">		kind := reflect.TypeOf(service)</span><br><span class="line">		...</span><br><span class="line">		services[kind] = service</span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>再来细看看所谓的子服务到底是个什么玩意。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// node/service.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Service <span class="keyword">interface</span> &#123;</span><br><span class="line">	</span><br><span class="line">	Protocols() []p2p.Protocol</span><br><span class="line"></span><br><span class="line">	APIs() []rpc.API</span><br><span class="line"></span><br><span class="line">	Start(server *p2p.Server) error</span><br><span class="line"></span><br><span class="line">	Stop() error</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里面有2个关键的方法<code>Protocols() &amp; APIs()</code>，前者维护了子协议实例，它是一个结构体，其中有一个重要的<code>Run()</code>方法，定义了特定的子协议该如何运行，包括启动和消息循环，这都是<code>P2P</code>的内容，暂时不用理会，而后者，<code>APIs()</code>则是我们今天的主角，它会返回这个子协议提供的所有<code>API</code>方法。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// rpc/types.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> API <span class="keyword">struct</span> &#123;</span><br><span class="line">	Namespace <span class="keyword">string</span>      </span><br><span class="line">	Version   <span class="keyword">string</span>      </span><br><span class="line">	Service   <span class="keyword">interface</span>&#123;&#125; </span><br><span class="line">	Public    <span class="keyword">bool</span>        </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里的<code>Namespace</code>标记了该<code>API</code>方法所属的命名空间，<code>Service</code>则托管了实际的API方法。<code>sendTransaction()</code>隶属<code>eth</code>协议，所以<code>eth_sendTransaction</code>的意思是：<strong>调用<code>eth</code>协议中的<code>sendTransaction()</code>方法。</strong></p>
+<p>到了<code>API struct</code>这一层还不够，因为<code>API.Service</code>接受的是<code>API</code>方法句柄，它并不能够被具名调用，而我们知道（假设大家都知道），反射可以做这样的事情：我反射一个方法，然后再通过<code>reflect:MethodByName()</code>获取到方法反射体，进而<code>reflect:Call()</code>就可以调用这个方法。这正是我们需要的，所以在<code>rpc/server.go:RegisterName()</code>中，将方法命名空间和方法句柄注册到服务器哈希表中，其中方法句柄被反射，方便之后处理请求时直接调用。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// rpc/endpoints.go</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// api.Service托管了API实际方法，在这里连同其命名空间注册到API哈希表中。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">StartIPCEndpoint</span><span class="params">(ipcEndpoint <span class="keyword">string</span>, apis []API)</span> <span class="params">(net.Listener, *Server, error)</span></span> &#123;</span><br><span class="line">	handler := NewServer()</span><br><span class="line">	<span class="keyword">for</span> _, api := <span class="keyword">range</span> apis &#123;</span><br><span class="line">		<span class="keyword">if</span> err := handler.RegisterName(api.Namespace, api.Service); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注册完之后，就是启动<code>RPC</code>服务了，在<code>node/node.go:startRPC()</code>中，我们可以看到，以太坊实际上会启动4种<code>RPC</code>服务：<code>startInProc() / startIPC() / startHTTP() / startWS()</code>，虽然我们常常看到的各种文档上都是3种：<code>IPC / HTTP / WebSocket</code>，那是因为<code>InProc</code>是进程内部通讯，不暴露出来的而已。注意：<code>InProc</code>和<code>IPC</code>是2种服务，前者是<code>InProcess</code>进程内通信，后者是<code>Inter Process Communication</code>进程间通信。</p>
+<h3 id="sendTransaction-实现"><a href="#sendTransaction-实现" class="headerlink" title="sendTransaction()实现"></a>sendTransaction()实现</h3><p>根据上面的原理，我们可以通过<code>Namespace: &quot;eth&quot;</code>在代码中寻找合适的<code>sendTransaction()</code>方法，你也许会找到如下两个疑似正确的方法：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// internal/ethapi/api.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *PrivateAccountAPI)</span> <span class="title">SendTransaction</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function"><span class="title">func</span> <span class="params">(s *PublicTransactionPoolAPI)</span> <span class="title">SendTransaction</span><span class="params">()</span></span></span><br></pre></td></tr></table></figure>
+
+<p>但你最终会发现<code>PublicTransactionPoolAPI.SendTransaction()</code>才是我们需要的，因为它的<code>Namespace</code>是<code>eth</code>，而<code>PrivateAccountAPI.SendTransaction()</code>的命名空间则是<code>personal</code>。</p>
+<blockquote>
+<p>至于为什么这里的方法名大写开头，而我们传进来的则是<code>eth_sendTransaction</code>，这是如何匹配上的，玄机在于RPC服务反射注册API方法时，<code>suitableCallbacks()</code>做了这个<code>dirty work</code>，有兴趣的可以到这里查看它做了哪些工作。</p>
+</blockquote>
+<p><a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md" target="_blank" rel="noopener"><code>EIP155</code></a>是关于代号<a href="https://blog.ethereum.org/2016/11/18/hard-fork-no-4-spurious-dragon/" target="_blank" rel="noopener"><strong>伪龙</strong></a>的以太坊第四次硬分叉中，一种简单的防重放攻击的保护措施文档：在伪龙升级（区块编号<code>2675000</code>）以后，当交易的<code>transaction.v</code>满足一定条件时，计算交易哈希时，不再仅哈希前6个元素，而是哈希9个元素。</p>
+<p><img src="/source_code/image/eth-sendTransaction5.png" alt></p>
+<h1 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h1><ul>
+<li><p><a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md" target="_blank" rel="noopener">https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md</a></p>
+</li>
+<li><p><a href="https://blog.ethereum.org/2016/11/18/hard-fork-no-4-spurious-dragon/" target="_blank" rel="noopener">https://blog.ethereum.org/2016/11/18/hard-fork-no-4-spurious-dragon/</a></p>
+</li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/04/26/Ethereum源码阅读笔记-accounts-3-创建账号背后的故事/" rel="next" title="Ethereum源码阅读笔记-accounts-3-创建账号背后的故事">
+                <i class="fa fa-chevron-left"></i> Ethereum源码阅读笔记-accounts-3-创建账号背后的故事
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/05/28/自私挖矿/" rel="prev" title="自私挖矿">
+                自私挖矿 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#在js-console中转账ETH"><span class="nav-number">1.</span> <span class="nav-text">在js console中转账ETH</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#背后流程"><span class="nav-number">2.</span> <span class="nav-text">背后流程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Geth-Console执行JS通用流程"><span class="nav-number">2.1.</span> <span class="nav-text">Geth Console执行JS通用流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#监听命令阶段"><span class="nav-number">2.1.1.</span> <span class="nav-text">监听命令阶段</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#发送请求"><span class="nav-number">2.1.2.</span> <span class="nav-text">发送请求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#接受请求"><span class="nav-number">2.1.3.</span> <span class="nav-text">接受请求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RPC服务端启动详解"><span class="nav-number">2.1.4.</span> <span class="nav-text">RPC服务端启动详解</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sendTransaction-实现"><span class="nav-number">2.1.5.</span> <span class="nav-text">sendTransaction()实现</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考资料"><span class="nav-number">3.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

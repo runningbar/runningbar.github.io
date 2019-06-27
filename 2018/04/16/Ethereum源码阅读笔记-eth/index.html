@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  go-ethereum/etheth包实现了以太坊协议(Ethereum protocol) Ethereum定义在backend.go中，可以看到Ethereum结构体的定义，该对象实现了以太坊全节点服务。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Ethereum源码阅读笔记-eth">
+<meta property="og:url" content="http://www.huamo.online/2018/04/16/Ethereum源码阅读笔记-eth/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  go-ethereum/etheth包实现了以太坊协议(Ethereum protocol) Ethereum定义在backend.go中，可以看到Ethereum结构体的定义，该对象实现了以太坊全节点服务。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.966Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Ethereum源码阅读笔记-eth">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  go-ethereum/etheth包实现了以太坊协议(Ethereum protocol) Ethereum定义在backend.go中，可以看到Ethereum结构体的定义，该对象实现了以太坊全节点服务。">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2018/04/16/Ethereum源码阅读笔记-eth/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Ethereum源码阅读笔记-eth | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2018/04/16/Ethereum源码阅读笔记-eth/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Ethereum源码阅读笔记-eth
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-04-16 11:59:44" itemprop="dateCreated datePublished" datetime="2018-04-16T11:59:44+08:00">2018-04-16</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/ethereum/" itemprop="url" rel="index"><span itemprop="name">ethereum</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h1 id="go-ethereum-eth"><a href="#go-ethereum-eth" class="headerlink" title="go-ethereum/eth"></a><code>go-ethereum/eth</code></h1><p><code>eth</code>包实现了以太坊协议(<code>Ethereum protocol</code>)</p>
+<h2 id="Ethereum定义"><a href="#Ethereum定义" class="headerlink" title="Ethereum定义"></a><code>Ethereum</code>定义</h2><p>在<code>backend.go</code>中，可以看到<code>Ethereum</code>结构体的定义，该对象实现了以太坊全节点服务。<a id="more"></a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// eth/backend.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Ethereum <span class="keyword">struct</span> &#123;</span><br><span class="line">	config      *Config</span><br><span class="line">	chainConfig *params.ChainConfig</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 用于关闭服务的channel</span></span><br><span class="line">	shutdownChan  <span class="keyword">chan</span> <span class="keyword">bool</span>    <span class="comment">// 关闭Ethereum的channel</span></span><br><span class="line">	stopDbUpgrade <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">error</span> // 停止更新链数据库序列号（<span class="title">sequential</span> <span class="title">key</span>）</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">	// 各种处理器</span></span><br><span class="line"><span class="function">	<span class="title">txPool</span>          *<span class="title">core</span>.<span class="title">TxPool</span></span></span><br><span class="line"><span class="function">	<span class="title">blockchain</span>      *<span class="title">core</span>.<span class="title">BlockChain</span></span></span><br><span class="line"><span class="function">	<span class="title">protocolManager</span> *<span class="title">ProtocolManager</span></span></span><br><span class="line"><span class="function">	<span class="title">lesServer</span>       <span class="title">LesServer</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">	// 数据库接口</span></span><br><span class="line"><span class="function">	<span class="title">chainDb</span> <span class="title">ethdb</span>.<span class="title">Database</span> // 区块链数据库</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">	<span class="title">eventMux</span>       *<span class="title">event</span>.<span class="title">TypeMux</span></span></span><br><span class="line"><span class="function">	<span class="title">engine</span>         <span class="title">consensus</span>.<span class="title">Engine</span></span></span><br><span class="line"><span class="function">	<span class="title">accountManager</span> *<span class="title">accounts</span>.<span class="title">Manager</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">	<span class="title">bloomRequests</span> <span class="title">chan</span> <span class="title">chan</span> *<span class="title">bloombits</span>.<span class="title">Retrieval</span> // 接收布隆数据的<span class="title">channel</span>来检索请求</span></span><br><span class="line"><span class="function">	<span class="title">bloomIndexer</span>  *<span class="title">core</span>.<span class="title">ChainIndexer</span>             // 布隆索引器在区块导入期间运行</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">	<span class="title">ApiBackend</span> *<span class="title">EthApiBackend</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">	<span class="title">miner</span>     *<span class="title">miner</span>.<span class="title">Miner</span> // 矿工</span></span><br><span class="line"><span class="function">	<span class="title">gasPrice</span>  *<span class="title">big</span>.<span class="title">Int</span> // 接受交易的<span class="title">gasPrice</span>门槛以打入区块</span></span><br><span class="line"><span class="function">	<span class="title">etherbase</span> <span class="title">common</span>.<span class="title">Address</span> // 挖到的<span class="title">ETH</span>存入该地址</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">	<span class="title">networkId</span>     <span class="title">uint64</span></span></span><br><span class="line"><span class="function">	<span class="title">netRPCService</span> *<span class="title">ethapi</span>.<span class="title">PublicNetAPI</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">	<span class="title">lock</span> <span class="title">sync</span>.<span class="title">RWMutex</span> // 用来保护各种字段（比如<span class="title">gasprice</span>和<span class="title">etherbase</span>）</span></span><br><span class="line"><span class="function">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="Ethereum对象的配置Config"><a href="#Ethereum对象的配置Config" class="headerlink" title="Ethereum对象的配置Config"></a><code>Ethereum</code>对象的配置<code>Config</code></h3><p>在<code>Ethereum</code>结构体中，第一个字段就是<code>config *Config</code>，<code>Config</code>本身也是一个结构体，定义在<code>config.go</code>文件中，包含了很多基础字段的定义。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// eth/config.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Config <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// 创世区块，如果数据库是空的，并且该字段不为空，那么该字段表示的区块就会被插入数据库中。</span></span><br><span class="line">	<span class="comment">// 如果数据库是空的，该字段也是空的，就使用以太坊主网的创世区块。</span></span><br><span class="line">	Genesis *core.Genesis <span class="string">`toml:",omitempty"`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 协议选项</span></span><br><span class="line">	NetworkId <span class="keyword">uint64</span> <span class="comment">// Network ID用于选择要连接的节点</span></span><br><span class="line">	SyncMode  downloader.SyncMode <span class="comment">// 同步模式，3种</span></span><br><span class="line">	NoPruning <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 轻客户端选项</span></span><br><span class="line">	LightServ  <span class="keyword">int</span> <span class="string">`toml:",omitempty"`</span> <span class="comment">// 处理LES请求最大允许时间比率</span></span><br><span class="line">	LightPeers <span class="keyword">int</span> <span class="string">`toml:",omitempty"`</span> <span class="comment">// LES客户端节点的最大数量</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 数据库选项</span></span><br><span class="line">	SkipBcVersionCheck <span class="keyword">bool</span> <span class="string">`toml:"-"`</span> <span class="comment">// 跳过检查区块链版本</span></span><br><span class="line">	DatabaseHandles    <span class="keyword">int</span>  <span class="string">`toml:"-"`</span></span><br><span class="line">	DatabaseCache      <span class="keyword">int</span></span><br><span class="line">	TrieCache          <span class="keyword">int</span></span><br><span class="line">	TrieTimeout        time.Duration</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 挖矿相关的选项</span></span><br><span class="line">	Etherbase    common.Address <span class="string">`toml:",omitempty"`</span></span><br><span class="line">	MinerThreads <span class="keyword">int</span>            <span class="string">`toml:",omitempty"`</span></span><br><span class="line">	ExtraData    []<span class="keyword">byte</span>         <span class="string">`toml:",omitempty"`</span></span><br><span class="line">	GasPrice     *big.Int</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Ethash工作证明选项</span></span><br><span class="line">	Ethash ethash.Config</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 交易池选项</span></span><br><span class="line">	TxPool core.TxPoolConfig</span><br><span class="line"></span><br><span class="line">	<span class="comment">// GasPrice先知选项</span></span><br><span class="line">	GPO gasprice.Config</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 是否在VM中启用跟踪SHA3原像</span></span><br><span class="line">	EnablePreimageRecording <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 其余杂项</span></span><br><span class="line">	DocRoot <span class="keyword">string</span> <span class="string">`toml:"-"`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码中还提供了一个默认配置<code>DefaultConfig</code>，包含了用于以太坊主网络的默认设置。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// eth/config.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> DefaultConfig = Config&#123;</span><br><span class="line">	<span class="comment">// 快速同步模式，即快速下载区块头，只在链开头进行全同步</span></span><br><span class="line">	SyncMode: downloader.FastSync,</span><br><span class="line">	Ethash: ethash.Config&#123;</span><br><span class="line">		<span class="comment">// 缓存目录</span></span><br><span class="line">		CacheDir:       <span class="string">"ethash"</span>,</span><br><span class="line">		CachesInMem:    <span class="number">2</span>,</span><br><span class="line">		CachesOnDisk:   <span class="number">3</span>,</span><br><span class="line">		DatasetsInMem:  <span class="number">1</span>,</span><br><span class="line">		DatasetsOnDisk: <span class="number">2</span>,</span><br><span class="line">	&#125;,</span><br><span class="line">	<span class="comment">// 网络ID为1</span></span><br><span class="line">	NetworkId:     <span class="number">1</span>,</span><br><span class="line">	<span class="comment">// 最多连100个LES客户端</span></span><br><span class="line">	LightPeers:    <span class="number">100</span>,</span><br><span class="line">	DatabaseCache: <span class="number">768</span>,</span><br><span class="line">	TrieCache:     <span class="number">256</span>,</span><br><span class="line">	TrieTimeout:   <span class="number">5</span> * time.Minute,</span><br><span class="line">	<span class="comment">// 18香农，即 18 * 10^9</span></span><br><span class="line">	GasPrice:      big.NewInt(<span class="number">18</span> * params.Shannon),</span><br><span class="line"></span><br><span class="line">	TxPool: core.DefaultTxPoolConfig,</span><br><span class="line">	GPO: gasprice.Config&#123;</span><br><span class="line">		Blocks:     <span class="number">20</span>,</span><br><span class="line">		Percentile: <span class="number">60</span>,</span><br><span class="line">	&#125;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>config.go</code>还包含了<code>init()</code>方法，只要导入<code>eth</code>包，该方法就会被执行，进行必要的初始化工作。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// eth/config.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 使用系统HOME环境变量作为数据根目录</span></span><br><span class="line">	<span class="comment">// 如果HOME为空，就尝试使用当前用户的HOME目录</span></span><br><span class="line">	<span class="comment">// 如果依然失败，数据根目录就为当前目录</span></span><br><span class="line">	home := os.Getenv(<span class="string">"HOME"</span>)</span><br><span class="line">	<span class="keyword">if</span> home == <span class="string">""</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> user, err := user.Current(); err == <span class="literal">nil</span> &#123;</span><br><span class="line">			home = user.HomeDir</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 如果用windows系统</span></span><br><span class="line">	<span class="keyword">if</span> runtime.GOOS == <span class="string">"windows"</span> &#123;</span><br><span class="line">		DefaultConfig.Ethash.DatasetDir = filepath.Join(home, <span class="string">"AppData"</span>, <span class="string">"Ethash"</span>)</span><br><span class="line">	<span class="comment">// 如果不是windows系统，则为.ethash隐藏目录</span></span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		DefaultConfig.Ethash.DatasetDir = filepath.Join(home, <span class="string">".ethash"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="新建一个Ethereum对象"><a href="#新建一个Ethereum对象" class="headerlink" title="新建一个Ethereum对象"></a>新建一个<code>Ethereum</code>对象</h2><p><code>backend.go</code>中的<code>New()</code>方法会新建一个<code>Ethereum</code>对象，包括普通<code>Ethereum</code>对象的初始化工作。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// eth/backend.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(ctx *node.ServiceContext, config *Config)</span> <span class="params">(*Ethereum, error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// eth.Ethereum是全节点，不支持轻同步模式</span></span><br><span class="line">	<span class="comment">// les.LightEthereum是轻节点，才支持轻同步模式</span></span><br><span class="line">	<span class="keyword">if</span> config.SyncMode == downloader.LightSync &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">"can't run eth.Ethereum in light sync mode, use les.LightEthereum"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 不在3种同步模式之内，则报错</span></span><br><span class="line">	<span class="keyword">if</span> !config.SyncMode.IsValid() &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"invalid sync mode %d"</span>, config.SyncMode)</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 创建链数据库</span></span><br><span class="line">	chainDb, err := CreateDB(ctx, config, <span class="string">"chaindata"</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 检查刚创建的数据库版本，并且启动一个后台进程以便必要时进行升级。</span></span><br><span class="line">	<span class="comment">// 返回一个停止函数，该函数一直阻塞，直到这个后台进程被安全的停掉。</span></span><br><span class="line">	stopDbUpgrade := upgradeDeduplicateData(chainDb)</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 在db中写入或者更新创世区块</span></span><br><span class="line">	<span class="comment">// 如果可兼容（即没有在本地开始块下面指定一个分叉块），那么链配置将会被更新</span></span><br><span class="line">	<span class="comment">// 如果发生冲突，会返回一个配置冲突错误，并且返回一个新的，未被改写的链配置。</span></span><br><span class="line">	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)</span><br><span class="line">	<span class="keyword">if</span> _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != <span class="literal">nil</span> &amp;&amp; !ok &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, genesisErr</span><br><span class="line">	&#125;</span><br><span class="line">	log.Info(<span class="string">"Initialised chain configuration"</span>, <span class="string">"config"</span>, chainConfig)</span><br><span class="line"></span><br><span class="line">	eth := &amp;Ethereum&#123;</span><br><span class="line">		config:         config,</span><br><span class="line">		chainDb:        chainDb,</span><br><span class="line">		chainConfig:    chainConfig,</span><br><span class="line">		eventMux:       ctx.EventMux,</span><br><span class="line">		accountManager: ctx.AccountManager,</span><br><span class="line">		<span class="comment">// 为该以太坊服务创建指定的共识引擎实例</span></span><br><span class="line">		engine:         CreateConsensusEngine(ctx, &amp;config.Ethash, chainConfig, chainDb),</span><br><span class="line">		shutdownChan:   <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>),</span><br><span class="line">		stopDbUpgrade:  stopDbUpgrade,</span><br><span class="line">		networkId:      config.NetworkId,</span><br><span class="line">		gasPrice:       config.GasPrice,</span><br><span class="line">		etherbase:      config.Etherbase,</span><br><span class="line">		bloomRequests:  <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">chan</span> *bloombits.Retrieval),</span><br><span class="line">		<span class="comment">// BloomBitsBlocks是一个布隆位向量包含的区块数量。</span></span><br><span class="line">		<span class="comment">// NewBloomIndexer返回一个链索引器，为日志快速过滤生成链的布隆位数据。</span></span><br><span class="line">		bloomIndexer:   NewBloomIndexer(chainDb, params.BloomBitsBlocks),</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// eth协议支持的版本号ProtocolVersions有[63, 62]，主要是第一个。</span></span><br><span class="line">	log.Info(<span class="string">"Initialising Ethereum protocol"</span>, <span class="string">"versions"</span>, ProtocolVersions, <span class="string">"network"</span>, config.NetworkId)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 如果不跳过检查区块链版本号</span></span><br><span class="line">	<span class="keyword">if</span> !config.SkipBcVersionCheck &#123;</span><br><span class="line">		<span class="comment">// 从数据库中获取"BlockchainVersion"字段的值</span></span><br><span class="line">		bcVersion := core.GetBlockChainVersion(chainDb)</span><br><span class="line">		<span class="comment">// core.BlockChainVersion为常量3，确保不兼容的数据库会强制重新同步</span></span><br><span class="line">		<span class="comment">// 如果不是3，且不为0，那么将会报错，提示需要进行数据库升级（代码并不做自动升级）</span></span><br><span class="line">		<span class="keyword">if</span> bcVersion != core.BlockChainVersion &amp;&amp; bcVersion != <span class="number">0</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"Blockchain DB version mismatch (%d / %d). Run geth upgradedb.\n"</span>, bcVersion, core.BlockChainVersion)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 将3写入数据库的"BlockchainVersion"字段中，以确保一致</span></span><br><span class="line">		core.WriteBlockChainVersion(chainDb, core.BlockChainVersion)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 从config中构造智能合约解释器配置，以及trie树相关的配置。</span></span><br><span class="line">	<span class="keyword">var</span> (</span><br><span class="line">		vmConfig    = vm.Config&#123;EnablePreimageRecording: config.EnablePreimageRecording&#125;</span><br><span class="line">		cacheConfig = &amp;core.CacheConfig&#123;Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout&#125;</span><br><span class="line">	)</span><br><span class="line">	<span class="comment">// 利用数据库中的可用信息初始化一条区块链。</span></span><br><span class="line">	<span class="comment">// 还初始化了默认的Ethereum验证器（验证从外面传来的区块）</span></span><br><span class="line">	<span class="comment">// 和Ethereum处理器（用来修改状态数据）</span></span><br><span class="line">	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, eth.chainConfig, eth.engine, vmConfig)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 如果出现了不兼容的配置升级情况，则回退区块链。</span></span><br><span class="line">	<span class="comment">// 将区块链的初始区块重置为错误信息中要求的区块。</span></span><br><span class="line">	<span class="comment">// Rewind the chain in case of an incompatible config upgrade.</span></span><br><span class="line">	<span class="keyword">if</span> compat, ok := genesisErr.(*params.ConfigCompatError); ok &#123;</span><br><span class="line">		log.Warn(<span class="string">"Rewinding chain to upgrade configuration"</span>, <span class="string">"err"</span>, compat)</span><br><span class="line">		eth.blockchain.SetHead(compat.RewindTo)</span><br><span class="line">		<span class="comment">// 将chainConfig写入到数据库中。</span></span><br><span class="line">		core.WriteChainConfig(chainDb, genesisHash, chainConfig)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 开始创建一个协程将区块链头事件发给索引器以实现级联后台处理。</span></span><br><span class="line">	eth.bloomIndexer.Start(eth.blockchain)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 本地交易日志用来服务节点重启</span></span><br><span class="line">	<span class="keyword">if</span> config.TxPool.Journal != <span class="string">""</span> &#123;</span><br><span class="line">		<span class="comment">// 将用户路径解析到数据目录下</span></span><br><span class="line">		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 创建一个新的交易池，用来集合，排序，和过滤从网络传入的交易。</span></span><br><span class="line">	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 创建一个新的Ethereum子协议管理器</span></span><br><span class="line">	<span class="comment">// 管理着有Ethereum网络的节点</span></span><br><span class="line">	<span class="keyword">if</span> eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 新建一个矿工</span></span><br><span class="line">	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine)</span><br><span class="line">	<span class="comment">// 配置矿工的额外数据</span></span><br><span class="line">	<span class="comment">// 包括以太坊版本号(例如 v1.8.4)，golang版本，节点主机操作系统名称</span></span><br><span class="line">	<span class="comment">// 并且额外数据长度不能超过32字节</span></span><br><span class="line">	eth.miner.SetExtra(makeExtraData(config.ExtraData))</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 全节点的ethapi.Backend</span></span><br><span class="line">	eth.ApiBackend = &amp;EthApiBackend&#123;eth, <span class="literal">nil</span>&#125;</span><br><span class="line">	gpoParams := config.GPO</span><br><span class="line">	<span class="keyword">if</span> gpoParams.Default == <span class="literal">nil</span> &#123;</span><br><span class="line">		gpoParams.Default = config.GasPrice</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// Oracle基于最近一些区块的内容推荐gasprice</span></span><br><span class="line">	<span class="comment">// 对于轻客户端和全客户端都是适用的</span></span><br><span class="line">	eth.ApiBackend.gpo = gasprice.NewOracle(eth.ApiBackend, gpoParams)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> eth, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>总体来看，<code>eth</code>包以及<code>eth.Ethereum</code>对象都是一个<strong>集大成者</strong>，调用了各个包的方法，把他们组装到一起，整体构成一个对外的以太坊服务，所以这个包应该是一个接近顶层的封装。</p>
+</blockquote>
+<h1 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h1><ul>
+<li><a href="https://godoc.org/github.com/ethereum/go-ethereum/eth" target="_blank" rel="noopener">https://godoc.org/github.com/ethereum/go-ethereum/eth</a></li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/04/11/Ethereum源码阅读笔记-whisper/" rel="next" title="Ethereum源码阅读笔记-whisper">
+                <i class="fa fa-chevron-left"></i> Ethereum源码阅读笔记-whisper
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/04/20/Ethereum源码阅读笔记-accounts-2-分层确定性钱包/" rel="prev" title="Ethereum源码阅读笔记-accounts(2)-分层确定性钱包">
+                Ethereum源码阅读笔记-accounts(2)-分层确定性钱包 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#go-ethereum-eth"><span class="nav-number">1.</span> <span class="nav-text">go-ethereum/eth</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Ethereum定义"><span class="nav-number">1.1.</span> <span class="nav-text">Ethereum定义</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Ethereum对象的配置Config"><span class="nav-number">1.1.1.</span> <span class="nav-text">Ethereum对象的配置Config</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#新建一个Ethereum对象"><span class="nav-number">1.2.</span> <span class="nav-text">新建一个Ethereum对象</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考资料"><span class="nav-number">2.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

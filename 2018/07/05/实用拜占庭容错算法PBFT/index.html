@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  实用拜占庭容错算法PBFT拜占庭将军问题拜占庭将军问题见于Leslie Lamport等人1982年的论文《The Byzantine Generals Problem》。是一个关于协议的问题。 想象一个敌方城市被拜占庭军队团团围住，围城部队分为几个部分驻扎在城外，每个部分仅由自己的将军指挥。将军们只能通过信使和其它将军进行通信。在观察了敌情之">
+<meta property="og:type" content="article">
+<meta property="og:title" content="实用拜占庭容错算法PBFT">
+<meta property="og:url" content="http://www.huamo.online/2018/07/05/实用拜占庭容错算法PBFT/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  实用拜占庭容错算法PBFT拜占庭将军问题拜占庭将军问题见于Leslie Lamport等人1982年的论文《The Byzantine Generals Problem》。是一个关于协议的问题。 想象一个敌方城市被拜占庭军队团团围住，围城部队分为几个部分驻扎在城外，每个部分仅由自己的将军指挥。将军们只能通过信使和其它将军进行通信。在观察了敌情之">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/PBFT_1.png">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.973Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="实用拜占庭容错算法PBFT">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  实用拜占庭容错算法PBFT拜占庭将军问题拜占庭将军问题见于Leslie Lamport等人1982年的论文《The Byzantine Generals Problem》。是一个关于协议的问题。 想象一个敌方城市被拜占庭军队团团围住，围城部队分为几个部分驻扎在城外，每个部分仅由自己的将军指挥。将军们只能通过信使和其它将军进行通信。在观察了敌情之">
+<meta name="twitter:image" content="http://www.huamo.online/source_code/image/PBFT_1.png">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2018/07/05/实用拜占庭容错算法PBFT/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>实用拜占庭容错算法PBFT | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2018/07/05/实用拜占庭容错算法PBFT/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">实用拜占庭容错算法PBFT
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-07-05 17:46:14" itemprop="dateCreated datePublished" datetime="2018-07-05T17:46:14+08:00">2018-07-05</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/ethereum/" itemprop="url" rel="index"><span itemprop="name">ethereum</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h1 id="实用拜占庭容错算法PBFT"><a href="#实用拜占庭容错算法PBFT" class="headerlink" title="实用拜占庭容错算法PBFT"></a>实用拜占庭容错算法PBFT</h1><h2 id="拜占庭将军问题"><a href="#拜占庭将军问题" class="headerlink" title="拜占庭将军问题"></a>拜占庭将军问题</h2><p>拜占庭将军问题见于<code>Leslie Lamport</code>等人1982年的论文<a href="https://people.eecs.berkeley.edu/~luca/cs174/byzantine.pdf" target="_blank" rel="noopener">《The Byzantine Generals Problem》</a>。是一个关于协议的问题。</p>
+<p>想象一个敌方城市被拜占庭军队团团围住，围城部队分为几个部分驻扎在城外，每个部分仅由自己的将军指挥。将军们只能通过信使和其它将军进行通信。在观察了敌情之后，他们必须制定一个一致行动的计划。结果表明：<strong>仅使用口头消息的情况下，该问题当且仅当<code>超过2/3</code>的将军忠诚时可解；而若使用不可伪造的书面消息时，对于任意数量的将军和可能出现的叛徒，该问题都是可解的。</strong></p>
+<a id="more"></a>
+
+<p>然而，其中有一些将军可能是叛徒，他们会试图阻止忠诚的将军们达成共识。所以拜占庭将军们必须有一个算法能够保证：</p>
+<p>A. 所有忠诚的将军能够统一行动计划：算法告诉什么，忠诚将军就会做什么，但是叛徒则会为所欲为。算法要能够在这种情况下依然保证忠诚的将军们达成一致决定。</p>
+<p>B. 一小部分数量的叛徒不能导致忠诚的将军们采纳了一个坏的计划：这个标准很难形式化的描述，因为首先要定义出什么叫做坏计划，我们不准备这么做。而是回顾下将军们如何达成一致。每个将军观察敌情，然后向其它将军交流观察结果。设<code>v[i]</code>是<code>第i个</code>将军发出的消息。每一个将军都使用某种神奇的方法，将<code>v[1], ..., v[n]</code>数据联合在一起并制定出一个单一的行动计划，其中<code>n</code>代表将军们的编号。当所有将军都使用同样的方法来制定计划时，就表明条件A达成，而条件B则需要保证采用的是一个鲁棒的方法。</p>
+<blockquote>
+<p>举个例子，假如行动计划就是进攻或者撤退二选一，<code>v[i]</code>就是第<code>i</code>个将军认为哪个选项更好，最终决定就是看哪一项投票更多就选那一项。那么只有当忠诚将军们在两个选项上投票持平，少数反叛者才能影响结果。在这种情况下哪一个选项都不能称之为坏计划（因为忠诚将军们原本对这两个计划就平分秋色）。</p>
+</blockquote>
+<h2 id="实用拜占庭容错算法"><a href="#实用拜占庭容错算法" class="headerlink" title="实用拜占庭容错算法"></a>实用拜占庭容错算法</h2><h3 id="0-概述"><a href="#0-概述" class="headerlink" title="0. 概述"></a>0. 概述</h3><p><a href="http://pmg.csail.mit.edu/papers/osdi99.pdf" target="_blank" rel="noopener">论文</a>介绍了一种新的拜占庭容错算法。之前的拜占庭算法，要么假定环境是同步系统，要么就是太慢不适用于实际场景。而这种新的算法是实用的：适用于异步环境，并结合了几个重要优化，可以将以前算法的响应时间提高一个数量级以上。文中还将该算法运用于NFS服务来测量其性能，结果表明仅比标准的NFS服务慢3%。</p>
+<h3 id="1-介绍"><a href="#1-介绍" class="headerlink" title="1. 介绍"></a>1. 介绍</h3><p>现如今的软件世界，拜占庭容错算法的重要性日益提高。本文介绍一种可容忍拜占庭错误的，实用的，状态机复制算法。<strong>该算法可以在最多 $\lfloor \frac{n-1}{3} \rfloor$ 个副本同时出错的情况下依然提供可用性和安全性（n是副本总数量，也可以认为是节点总数量）</strong>。这也就意味着用户最终能收到他们请求的，线性正确的回复（从<a href="http://www.huamo.online/2018/06/01/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/">RAFT</a>那篇文章里可知，副本状态机的副本都是线性编号的）。该算法在异步环境下依然能够有效执行。所以不容易受到<code>denail-of-service attack</code>这种攻击的影响。</p>
+<blockquote>
+<p><code>denail-of-service attack</code>：拒绝服务攻击</p>
+</blockquote>
+<p>该算法仅用1个消息往返就执行了只读操作，以及2个消息往返执行了读写操作。并且在常用操作中使用了一种有效的，基于消息验证码（<code>MAC</code>）的验证模式。而仅在出现拜占庭错误时才会使用耗时耗性能的公钥密码学技术。</p>
+<p>为了评估算法性能，他们实现了一个复制算法库，并用到了一个实际系统中：一个支持NFS协议的，拜占庭容错的，分布式文件系统。基准测试结果表明：只比普通的NFS服务慢<code>3%</code>。</p>
+<p>论文做出了如下贡献：</p>
+<ul>
+<li><p>第一个提出了在异步环境下，拜占庭容错的，状态机复制协议。</p>
+</li>
+<li><p>描述了一堆重要的优化以便算法能在真实系统中有效执行。</p>
+</li>
+<li><p>描述了一个拜占庭容错的分布式文件系统的实现。</p>
+</li>
+<li><p>提供了该算法性能的量化实验结果。</p>
+</li>
+</ul>
+<h3 id="2-系统模型"><a href="#2-系统模型" class="headerlink" title="2. 系统模型"></a>2. 系统模型</h3><p>我们设想一个异步的分布式系统，其中的节点都是通过网络连接在一起。这个网络可能会传递消息失败，传递消息延时，重复传递消息，或者不按顺序传递消息。</p>
+<p>并且使用拜占庭故障模型，即故障节点可以任意行事，只受这一条限制：节点故障都是相互独立的。例如每个故障节点都使用不同的服务实现版本。</p>
+<p>我们使用密码学技术来防止欺骗，重放，以及检测损坏的消息。我们的消息包含公钥签名，消息验证码（<code>MAC</code>），以及使用抗碰撞哈希函数生成的消息摘要。我们将节点<code>i</code>对消息<code>m</code>的签名记为 $$\langle m \rangle_{\sigma_{i}}$$，而消息<code>m</code>的摘要记为<code>D(m)</code>。我们遵循常用的做法：即对消息的摘要进行签名，然后将其追加到消息明文后面。而不是对整个消息进行签名。（这种方式需要确保签名能够被解析出来）。所有的节点（或称复制体）都知道其他人的公钥以验证签名。</p>
+<p>除此之外，就是我们假想攻击者很强大，延迟通信，甚至控制拜占庭故障节点。但是它也有一些合理的限制，比如无法无限期延迟网络通讯，无法计算攻破密码学技术。</p>
+<h3 id="3-服务属性"><a href="#3-服务属性" class="headerlink" title="3. 服务属性"></a>3. 服务属性</h3><p>该算法可以用于实现任意的，拥有状态机和一些操作的，确定的，复制服务。操作不仅限于对状态局部的简单读或写，还可以执行基于状态和参数的任意确定的计算。客户端发起请求，调用操作并阻塞等待一个回复。复制服务由<code>n</code>个复制体实现。只要遵循第4节描述的算法并且攻击者无法伪造签名，那么这个服务就不会出现故障。</p>
+<p>只要不超过$\lfloor \frac{n-1}{3} \rfloor$个复制体出现故障，该算法就能通知保证<strong>安全</strong>和<strong>可用性</strong>。<strong>安全</strong>指的是复制服务满足线性化：它表现的就像一个中心化实现，每次只执行一个原子操作。安全性要求故障复制体的数量受到限制，因为故障节点会出现任意行为，比如它可以破坏本地状态。</p>
+<p>安全性不需要管有多少故障客户端来使用这个服务（即使它们串通了故障节点，也不影响服务的安全性）：故障客户端的所有操作和正常客户端的操作都一视同仁。比如：一个操作被设计为在状态里保存几个不变量，那么故障节点是无法破坏这些不变量的。</p>
+<p>单有安全性是不足以抵御故障节点的，比如在一个文件系统里，故障客户端可以向共享文件写入大量垃圾数据。所以，我们通过访问控制来限制故障节点的危害：验证客户端，如果没有权限调用某一操作，则拒绝客户端的请求。另外，服务也可以提供修改一个客户端的访问权限的操作。由于算法对所有客户端，一视同仁的保证了危险操作的影响程度，这就提供了一个强有力的机制来抵御故障客户端的攻击。</p>
+<p><strong>算法不依赖同步来提供安全性，因此，它就必须依赖同步来提供可用性(<code>liveness</code>)。否则，就不可能在一个异步系统中实现共识（证明见参考资料3）</strong>。如果最多只有$\lfloor \frac{n-1}{3} \rfloor$个复制体出现故障，并且<code>dealy(t)</code>不会关于<code>t</code>无限增长下去。那么该算法就可以保证可用性。这里的<code>delay(t)</code>指的是在<code>t</code>时刻消息第一次发送出去，一直到收到对方回复这一段时间（假设发送者收不到回复就会一直重发）。这是一种相当弱的同步假设，更符合真实系统中的网络情况。即使很弱，但也依然帮我们避开了资料3中的不可能命题。</p>
+<p><strong>该算法对数量的弹性适用是很棒的：在一个异步系统中，当有<code>f</code>个复制体出现故障时，如果还想保持安全性和可用性，那么系统的总节点数量<code>n</code>最少应为<code>3f+1</code>。需要这么多节点的原因是：剩下的<code>n-f</code>个节点通信还需要继续处理，因为<code>f</code>个节点可能已经出现故障并且没有响应。然而，也有可能存在有f个节点没有响应，但是它们并没有出现故障这种情况，同时，在响应的节点中，有f个节点虽然响应了，但是它们却出现了故障。所以，除了f个故障节点之外，剩余的节点也要有足够的响应数量来维护多数原则才能使整个系统属性得以保障，亦即：<code>n - 2f &gt; f</code>，因此，<code>n &gt; 3f</code>。</strong></p>
+<blockquote>
+<p>备注：这一段非常精髓简要的解释了为什么是<code>3f+1</code>的原因，就是前提是已经有f个节点叛变了，那么我如何保障系统还能正常，正常的根本就是诚实节点占大多数，但是剩余的<code>n-f</code>个节点不一定都是诚实节点，最坏情况下，减掉的那f个节点其实都是诚实节点，只是它们没有响应而已，所以叛变节点都在<code>n - f</code>里面，所以我们需要保证剩余节点里面，诚实节点占大多数，于是就有：<code>n - f - f &gt; f</code>，即<code>n - 2f &gt; f</code>，得出：<code>n &gt; 3f</code></p>
+</blockquote>
+<p>该算法并没有解决隐私容错的问题：叛变节点有可能会泄露信息给攻击者。这不是本算法目前关注的重点，作者在文中表示计划在未来调研这方面的技术。可能会用秘密共享方案或者设置获取隐私的门槛等。</p>
+<h3 id="4-算法"><a href="#4-算法" class="headerlink" title="4. 算法"></a>4. 算法</h3><p>该算法是状态机复制的一种形式：服务建模在一个分布式系统中，一个状态机要在不同的节点之间进行复制。每个状态机副本都维护了服务状态，以及实现了服务操作。我们将副本集合记为<code>R</code>，并用整数来编号每个副本：<code>{0, ..., |R|-1}</code>。为了简单，我们假定<code>|R| = 3f + 1</code>。其中<code>f</code>表示集合中故障副本的最大数量。虽然总数量<code>|R|</code>也可以大于<code>3f+1</code>，<strong>但是多余的那些副本只会降低系统的性能（因为有更多更大的消息要被传输），并不会提高系统的健壮性。</strong></p>
+<p>副本通过一系列称为<strong><code>view</code>（视图）</strong>的配置进行移动。在一个<code>view</code>中有一个副本是主副本（<code>primary</code>），其它的都称为备用副本(<code>backups</code>)。视图是被连续编号的。一个视图中的主副本是<code>p</code>号副本，其中<code>p = v mod |R|</code>，其中<code>v</code>是视图编号。当主节点出现故障时，就会执行<strong><code>view change</code>（视图改变）</strong></p>
+<p>算法大致运行过程如下：</p>
+<ol>
+<li><p>一个客户端向主节点发送请求去调用一个服务操作。</p>
+</li>
+<li><p>主节点向备用节点广播这个请求。</p>
+</li>
+<li><p>各个节点都会执行这个请求，并向客户端发送一个回复。</p>
+</li>
+<li><p>客户端从不同节点收到了<code>f + 1</code>回复，且这些回复都是相同的结果，那么这就是该操作的执行结果。</p>
+</li>
+</ol>
+<p>就像所有的状态机副本技术那样，该算法对副本也有两个强制要求：<strong>1. 他们必须是确定的（给定一个状态，给定一组参数，给定一个操作，那么必须能够输出同样的结果）；2. 他们必须从同一个状态开始演变。</strong>有了这2个规定，算法就能通过保证 <em>所有非故障副本执行请求的总顺序上达成一致，即使执行失败，但总顺序依然是一致的</em> 这一原则来确保安全性。</p>
+<h4 id="4-1-客户端"><a href="#4-1-客户端" class="headerlink" title="4.1 客户端"></a>4.1 客户端</h4><p>一个客户端<code>c</code>通过向主节点发送一个消息 $$\langle REQUEST, o, t, c \rangle_{\sigma_{c}}$$ 来请求执行状态机操作<code>o</code>。时间戳<code>t</code>用来在语义上确保请求只执行一次。对于客户端<code>c</code>的请求，时间戳是全部有序的，即后续的请求总是比之前的请求时间戳大。例如时间戳可以被设计为客户端的本地时间。</p>
+<p>节点发送给客户端的每个消息都包含了当前的视图编号，方便客户端追踪视图，从而确定当前的主节点。客户端通过点对点消息向它自认为的主节点发送请求。而主节点则使用下文中描述的协议向所有备用节点广播请求。</p>
+<p>每个节点都向客户端直接发送回复。回复遵守的格式为 $$\langle REPLY, v, t, c, i, r \rangle_{\sigma_{i}}$$ 其中<code>v</code>是当前视图编号，<code>t</code>是对应请求的时间戳，<code>i</code>是节点编号，<code>r</code>则是请求操作的执行结果。</p>
+<p>客户端等待<code>f + 1</code>个有合法签名的不同节点的回执，并且它们都有相同的<code>t</code>和<code>r</code>，这样才最终接受结果<code>r</code>，并确信这个结果是合法的，因为整个系统最多会有<code>f</code>个节点出现故障。</p>
+<p>如果客户端没有及时收到回复，它会将请求广播给所有节点。如果请求已经被处理了，节点则简单的重发回复；节点缓存了它发给每个客户端的最后一条回复。否则（即请求没有被处理），如果节点不是主节点，它将会把请求转发给主节点。如果主节点没有把请求广播给组内其它人，它最终会被足够多的节点质疑为出现故障，而出现<code>view change</code>。</p>
+<p>在论文中，作者假定的是客户端等待一个请求执行完成，再发送下一个请求。而算法可以允许客户端异步发送请求，同时保留对它们的排序约束。</p>
+<h4 id="4-2-普通情况操作"><a href="#4-2-普通情况操作" class="headerlink" title="4.2 普通情况操作"></a>4.2 普通情况操作</h4><p>每个节点的状态都包含了服务状态，消息日志则包含了节点收到的消息，还有一个整数记录了该节点所处的当前视图。后文还会讲述如何截短日志。</p>
+<p>当主节点<code>p</code>收到了一条客户端请求<code>m</code>，它就会启动一个<strong>三阶段协议</strong>向其它节点来原子得广播请求。一般来说主节点会在收到请求后立马启动协议，除非协议正在进行的消息数目已经超过了给定的最大值。这种情况下，它会先缓存该请求。缓存的请求稍后会作为一组多播出去，以降低高负载下的消息流量和CPU开销。这种优化类似于事务性系统中的组提交。</p>
+<p>三阶段协议为<code>pre-prepare</code>，<code>prepare</code>，和<code>commit</code>。<code>pre-prepare</code>和<code>prepare</code>阶段是用来全局排序在一个相同<code>view</code>中<strong>发出的请求</strong>，即使提出排序请求的主节点出现了故障也是如此。<code>prepare</code>和<code>commit</code>阶段是用来确保<strong>提交的请求</strong>在视图之间也是全局有序的。</p>
+<p>在<code>pre-prepare</code>阶段，主节点向请求派发一个序列编号<code>n</code>，并多播一个<code>pre-prepare</code>消息，连带请求<code>m</code>，发送给所有备用节点，并将该消息追加到节点日志中。这个<code>pre-prepare</code>消息具有如下格式 $$\langle \langle PRE-PREPARE, v, n, d \rangle_{\sigma_{p}}, m \rangle$$ ，其中<code>v</code>代表这个<code>pp</code>消息发出时的<code>view</code>编号，<code>m</code>是客户端发出的请求消息（不是请求本身），<code>d</code>是<code>m</code>的消息摘要。</p>
+<p>请求并没有包含在<code>pre-prepare</code>消息中，以使它们体积更小。这一点很重要因为<code>pp</code>消息，在发生<code>view change</code>时，可用来证明请求在视图<code>v</code>中被指定了序列号<code>n</code>。此外，它对协议进行了解耦，将协议中的对请求全局排序，和向各节点传输请求分离开来；这就允许我们对小消息通信运用一种传输优化手段，而对大请求的大消息通信采用另一种传输优化手段。</p>
+<p><strong>一个备用节点只接受满足如下条件的<code>pre-prepare</code>消息：</strong></p>
+<ul>
+<li><p>请求的签名，和<code>pp</code>消息都是正确的，并且<code>d</code>是请求消息<code>m</code>的摘要。</p>
+</li>
+<li><p>该节点在视图<code>v</code>中。</p>
+</li>
+<li><p>节点还没有接受过一个视图<code>v</code>，序列号<code>n</code>，而摘要不一样的<code>pp</code>消息。</p>
+</li>
+<li><p><code>pp</code>消息中的序列号介于低水印<code>h</code>，和高水印<code>H</code>之间。</p>
+</li>
+</ul>
+<p>最后一个条件是为了防止一个故障主节点选用一个超大值来耗尽序列号空间。后文会讨论<code>h</code>和<code>H</code>的更新。</p>
+<p>如果备用节点<code>i</code>接受了消息 $$\langle \langle PRE-PREPARE, v, n, d \rangle_{\sigma_{p}}, m \rangle$$ ，它会通过做以下事情进入<code>prepare</code>阶段：向所有其它节点多播 $$\langle PREPARE, v, n, d, i\rangle_{\sigma_{i}}$$ 消息，并将这2个消息都存入日志中。否则，不做任何事。</p>
+<p><strong>一个节点（包括主节点）接受<code>prepare</code>消息，并存入自己的日志中，只要</strong></p>
+<ol>
+<li><p>该消息的签名正确。</p>
+</li>
+<li><p>消息中的<code>view</code>编号等于自身当前所处的<code>view</code>。</p>
+</li>
+<li><p>并且序列号介于<code>h</code>和<code>H</code>之间。</p>
+</li>
+</ol>
+<p>我们定义谓词<code>prepared(m, v, n, i)</code>为<code>true</code>，当且仅当节点<code>i</code>已经将如下几项存入到日志中：</p>
+<ol>
+<li><p>请求<code>m</code>。</p>
+</li>
+<li><p><code>m</code>在视图<code>v</code>中具有序列号<code>n</code>的<code>pre-prepare</code>消息。</p>
+</li>
+<li><p>并且由<code>2f</code>个不同节点发来的匹配该<code>pre-prepare</code>消息的<code>prepare</code>消息。节点判断是否匹配的标准是：它俩是否具有相同的<code>view</code>，相同的序列号，相同的摘要。</p>
+</li>
+</ol>
+<p>算法的<code>pre-prepare</code>阶段和<code>prepare</code>阶段保证了正常节点都认同一个视图内的请求顺序。更确切的说，它们保证了如下不变式：</p>
+<p><strong>如果<code>prepared(m, v, n, i)</code>为<code>true</code>，那么对于任意的正常节点<code>j</code>（包括<code>i = j</code>），以及任意的其它请求<code>m&#39;</code>（<code>D(m&#39;) != D(m)</code>）来说，都有<code>prepared(m&#39;, v, n, j)</code>为<code>false</code>。</strong></p>
+<p>这个命题之所以是真的，是因为<code>prepared(m, v, n, i)</code>和<code>|R|=3f+1</code>暗含了至少有<code>f + 1</code>个正常节点为数据<code>(m, v, n)</code>发出了<code>pre-prepare</code>或<code>prepare</code>消息，数据<code>(m, v, n)</code>意思是一个在视图<code>v</code>内携带序列号<code>n</code>的请求<code>m</code>。因此，要想让<code>prepared(m&#39;, v, n, j)</code>为<code>true</code>，那么这些正常节点中至少要有1个节点需要发出2条冲突的<code>prepare</code>消息（或者它是视图<code>v</code>的主节点，则是<code>pre-prepare</code>消息），但这和它是正常节点的假设是冲突的。当然了，这里假设的是对于不同的请求<code>m</code>和<code>m&#39;</code>，它们的哈希摘要也是不同的：<code>D(m) != D(m&#39;)</code></p>
+<blockquote>
+<p>这一段很精彩，用反证法证明了对于同样的视图，同样的序列号，只会存在一个请求是合法的，这就保证了同一视图内请求都是全部有序的：因为已知系统内至少有<code>f+1</code>个正常节点，假设最坏情况有<code>f</code>个故障节点，那么剩余的节点还有<code>f</code>个待定节点，但是要想让<code>m&#39;</code>谓词为真，需要<code>f+1</code>个节点背书，即使所有的待定节点为其背书，那也还少1个节点，所以只能从<code>f+1</code>个正常节点取出1个为其背书，但是<code>f+1</code>个正常节点已经为<code>m</code>谓词背书了，所以凑不够数，因此<code>m&#39;</code>不可能为真。</p>
+</blockquote>
+<p>当<code>prepared(m, v, n, i)</code>为<code>true</code>时，节点<code>i</code>向其它节点多播一条格式为 $$\langle COMMIT, v, n, D(m), i \rangle_{\sigma_{i}}$$ 的<code>commit</code>消息，以此开启<code>commit</code>阶段。<strong>节点接受<code>commit</code>消息并将它们插入到日志中的前提是</strong>：</p>
+<ol>
+<li><p>消息被正确的签名。</p>
+</li>
+<li><p>消息的<code>view</code>编号等于节点当前所处的<code>view</code>。</p>
+</li>
+<li><p>序列号介于<code>h</code>和<code>H</code>之间。</p>
+</li>
+</ol>
+<p>我们定义<code>committed</code>和<code>committed-local</code>这两个新谓词如下：</p>
+<ul>
+<li><p><code>committed(m, v, n)</code>为<code>true</code>，当且仅当对于<code>f+1</code>个无故障节点的集合中的所有的节点<code>i</code>，都有<code>prepared(m, v, n, i)</code>为<code>true</code>。</p>
+</li>
+<li><p><code>committed-local(m, v, n, i)</code>为<code>true</code>，当且仅当<code>prepared(m, v, n, i)</code>为<code>true</code>，且节点<code>i</code>收到了<code>2f+1</code>个（很可能包含它自己的）不同节点发来的匹配<code>pre-prepare</code>消息的<code>commit</code>消息。匹配标准是：相同的<code>view</code>，相同的序列号，和相同的摘要。</p>
+</li>
+</ul>
+<p><code>commit</code>阶段保证了如下不变式：</p>
+<p>对于一些正常节点<code>i</code>，如果<code>committed-local(m, v, n, i)</code>为<code>true</code>，那么<code>committed(m, v, n)</code>为<code>true</code>。</p>
+<p>将在后文介绍该不变式和<code>view-change</code>协议，该协议确保了正常节点会认同已经本地提交的请求序列号，即使它们在每个节点上，是在不同<code>view</code>中本地提交的。此外，该协议还保证了任何一个在1个正常节点上本地提交的请求，最终都会在<code>f+1</code>甚至更多的正常节点上本地提交成功。</p>
+<p>当<code>committed-local(m, v, n, i)</code>为<code>true</code>后，每个节点<code>i</code>都会执行客户端请求的操作，并且操作的状态也反映了之前更小序列号的请求顺序执行完的结果。这就确保了所有的正常节点按照要求遵循同样的顺序执行请求以提供安全性。当操作执行完成之后，节点直接向客户端返回结果。节点会记住最后一次回复对应的请求时间戳<code>t</code>，如果收到了一个新请求时间戳小于<code>t</code>，则会丢弃该请求以保证一次性语义。</p>
+<p>该算法不依赖有序消息传输，因此会有可能一个节点不按顺序<code>commit</code>请求。这没有什么影响，因为<code>commit</code>请求并不是真正去执行操作，而是把<code>pre-prepare</code>，<code>prepare</code>，<code>commit</code>消息记录在日志中，直到对应的请求可以被执行了，才会去真正执行请求。</p>
+<p>下图图示了在正常情况下，主节点正常的前提下，算法的操作流程。节点0是主节点，节点3是故障节点，<code>C</code>则是客户端。</p>
+<p><img src="/source_code/image/PBFT_1.png" alt></p>
+<h4 id="4-3-垃圾回收"><a href="#4-3-垃圾回收" class="headerlink" title="4.3 垃圾回收"></a>4.3 垃圾回收</h4><p>本节讨论的是忽略日志中某些信息的机制。为了保证安全性，节点必须将消息保存在日志中，直到它们知晓了相关的请求已经至少被<code>f+1</code>个正常节点执行，并且在<code>view-change</code>时它能够向其它节点提供这样的证明。此外，如果有些节点丢失了一些消息，这些消息恰好又被所有正常节点丢弃了，那么它就需要通过传输全部或者部分服务状态来同步到最新。因此节点还需要证明状态正确的证明。</p>
+<p>在每次操作完成后生成这些证明是极为昂贵的。所以，替代方案是周期性的生成证明，比如当一个请求的序列号可以整除一些常量（比如<code>100</code>）时生成证明。我们将此时的服务状态称为<code>checkpoints</code>（检查点），并称带有证明的检查点为<code>stable checkpoint</code>（稳定检查点）。</p>
+<p>一个节点会维护服务状态的几份逻辑拷贝：最近稳定检查点，<code>0或多个</code>不稳定的检查点，还有一个目前的服务状态。<code>copy-on-write</code>技术可以用来减少额外存储的开销。这种优化会在<code>6.3节</code>讨论。</p>
+<p>检查点正确性的证明按照如下规则生成。当一个节点<code>i</code>产生一份检查点时，它会向其它节点多播一个格式为 $$\langle CHECKPOINT, n, d, i \rangle_{\sigma_{i}}$$ 的<code>checkpoint</code>消息，其中<code>n</code>是反映在服务状态上最近一个已经执行操作了的请求序列号，<code>d</code>是服务状态的摘要。每个节点收集<code>checkpoint</code>消息存入到日志中，直到收集到相同序列号<code>n</code>，相同摘要<code>d</code>，来自不同节点（很可能包含自己的），数量为<code>2f+1</code>个这样的消息。那么这<code>2f+1</code>个消息就是该检查点的正确性证明。</p>
+<p>一个带有证明的检查点就变为了<code>稳定检查点</code>，节点就会丢弃掉日志中所有序列号小于等于<code>n</code>的<code>pre-prepare</code>，<code>prepare</code>，<code>commit</code>消息。它还会丢弃掉所有更早的检查点以及<code>checkpoint</code>消息。</p>
+<p><code>checkpoint</code>协议是用来更新低水印<code>h</code>和高水印<code>H</code>的值的，这两个值限制了消息是否会被节点接受。其中低水印<code>h</code>等于最近一次稳定的检查点的序列号。高水印<code>H = h + k</code>，其中<code>k</code>是足够大的数，以便节点不需要停在那儿等待一个检查点变成稳定状态。例如，检查点被设为每<code>100</code>个请求检查一次，那么<code>k</code>有可能就等于<code>200</code>。</p>
+<h4 id="4-4-View-Changes"><a href="#4-4-View-Changes" class="headerlink" title="4.4 View Changes"></a>4.4 View Changes</h4><p>当主节点出现故障时，<code>view-change</code>协议允许系统能够自我演进，以此提供了可用性。<code>view change</code>通过超时机制触发，避免了执行请求时备用节点的无限等待。如果一个备用节点收到了一个合法的但还没有执行的请求，此时它就会<code>waiting</code>执行请求。当节点收到一个请求并且计时器没有在运行时，它就会启动一个计时器。当它不再需要<code>waiting</code>执行请求时，它就会停止计时器。而如果<strong>这个时候</strong>，它又要<code>waiting</code>执行其它的请求时，就会重启计时器。</p>
+<blockquote>
+<p>一个请求处理完，此时计时器还在运行，应该要停止计时器，但恰好又有新的请求被接受，此时因为计时器还在运行，不符合启动计时器的条件，所以节点需要重启计时器，即重置。</p>
+</blockquote>
+<p>如果备用节点<code>i</code>的计时器在视图<code>v</code>中到期了，这个备用节点就会开启一个<code>view change</code>将系统移至视图<code>v + 1</code>。它会停止接受消息（除了<code>checkpoint</code>，<code>view-change</code>，<code>&#39;new-view</code>消息，这些它还接受），并且多播一个 $$\langle VIEW-CHANGE, v+1, n, C, P, i \rangle_{\sigma_{i}}$$ 的<code>view-change</code>消息给所有节点。这里的<code>n</code>是节点<code>i</code>知晓的最近一个稳定检查点<code>s</code>的序列号，<code>C</code>是一个集合，包含了<code>2f+1</code>个合法的<code>checkpoint</code>消息证明了<code>s</code>的正确性，<code>P</code>也是一个集合，包含了一系列的，在节点<code>i</code>上已经<code>prepared</code>，并且序列号高于<code>n</code>的请求<code>m</code>的 $P_{m}$ 。 $P_{m}$ 也是一个集合，包含了一个合法的<code>pre-prepare</code>消息（不含对应的客户端消息），以及<code>2f</code>个匹配的，合法的<code>prepare</code>消息，这些<code>prepare</code>消息由不同的备用节点签名，它们都具有相同的<code>view</code>，相同的序列号，还有相同的请求<code>m</code>的摘要。</p>
+<p>当视图<code>v+1</code>的主节点从其他节点收到了<code>2f</code>个合法的，提议改变到视图<code>v+1</code>的<code>view-change</code>消息时，它会多播一个 $$\langle NEW-VIEW, v+1, V, Q\rangle_{\sigma_{p}}$$ 的<code>new-view</code>消息给所有其它节点，其中<code>V</code>是一个集合，包含了主节点自己收到的，合法的<code>view-change</code>消息，以及它自己发出的（或者要发出的）<code>view-change</code>消息，还有<code>Q</code>也是一个集合，包含了一系列的<code>pre-prepare</code>消息（不包含夹带的客户端请求）。<code>Q</code>经由如下规则计算。</p>
+<ol>
+<li><p>主节点先确定最低序列号，和最高序列号。最低序列号来自于<code>V</code>中最小的最近稳定检查点<code>min-s</code>，最高序列号来自于<code>V</code>中<code>prepare</code>消息中最大的最近稳定检查点<code>max-s</code>。</p>
+</li>
+<li><p>主节点对于每一个序列号<code>n</code>介于<code>min-s</code>和<code>max-s</code>之间的请求，都用视图<code>v+1</code>创建一个新的<code>pre-prepare</code>消息。这分2种情况：(1)对于<code>V</code>中的一些<code>view-change</code>消息，至少有一个在<code>P</code>集合中。或者(2)没有这样的集合。对于第一种情况，主节点创建出一个新的<code>pre-prepare</code>消息：$$\langle PRE-PREPARE, v+1, n, d \rangle_{\sigma_{p}}$$，其中<code>d</code>是<code>V</code>中具有最高视图编号的序列号为<code>n</code>的<code>pre-prepare</code>消息中的请求摘要。对于第2种情况，主节点会创建出另一种新的<code>pre-prepare</code>消息：$$\langle PRE-PREPARE, v+1, n, d^{null} \rangle_{\sigma_{p}}$$ ，其中 $$d^{null}$$ 指的是一个特殊的<code>null</code>请求的摘要。这种<code>null</code>请求可以像正常请求那样穿梭在协议中，但是它申请执行的操作就是<code>没有操作</code>。</p>
+</li>
+</ol>
+<p>接下来，主节点会将<code>Q</code>中的消息记录到自己的日志中。如果<code>min-s</code>比它自己知晓的最近稳定检查点序列号还要大，主节点还会将序列号为<code>min-s</code>的检查点的稳定性证明插入到日志中，并忽略掉<code>4.3节</code>讨论的日志中信息。然后它进入视图<code>v+1</code>：此时它可以接受视图<code>v+1</code>的消息了。</p>
+<p>一个备用节点接受视图<code>v+1</code>的<code>new-view</code>消息，需要满足如下3个条件：</p>
+<ol>
+<li><p>签名正确</p>
+</li>
+<li><p>它包含的<code>view-change</code>消息对于视图<code>v+1</code>合法</p>
+</li>
+<li><p>集合<code>Q</code>正确</p>
+</li>
+</ol>
+<p>节点判断集合<code>Q</code>的正确性，是通过执行一系列计算，计算规则类似于主节点创造<code>Q</code>的算法。然后它将这个新信息存入到日志中，然后向所有其它节点，对<code>Q</code>中的每个消息多播一个<code>prepare</code>消息，并将这些<code>prepare</code>消息加入到日志中，并且进入视图<code>v+1</code>。</p>
+<p>随后，协议会像<code>4.2节</code>描述的那样进行处理。节点对于<code>min-s</code>和<code>max-s</code>之间的消息重做相同操作，但会避免重复执行请求（依据本地存储信息，关于对每个客户端发出的最后一次反馈来判断）。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><p><a href="https://people.eecs.berkeley.edu/~luca/cs174/byzantine.pdf" target="_blank" rel="noopener">https://people.eecs.berkeley.edu/~luca/cs174/byzantine.pdf</a></p>
+</li>
+<li><p><a href="http://pmg.csail.mit.edu/papers/osdi99.pdf" target="_blank" rel="noopener">http://pmg.csail.mit.edu/papers/osdi99.pdf</a></p>
+</li>
+<li><p>M. Fischer, N. Lynch, and M. Paterson. Impossibility of<br>Distributed Consensus With One Faulty Process. Journal of the<br>ACM, 32(2), 1985.</p>
+</li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/06/12/P2P网络-Kademlia协议/" rel="next" title="P2P网络--Kademlia协议">
+                <i class="fa fa-chevron-left"></i> P2P网络--Kademlia协议
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/07/24/Vim使用积累/" rel="prev" title="Vim使用积累">
+                Vim使用积累 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#实用拜占庭容错算法PBFT"><span class="nav-number">1.</span> <span class="nav-text">实用拜占庭容错算法PBFT</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#拜占庭将军问题"><span class="nav-number">1.1.</span> <span class="nav-text">拜占庭将军问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实用拜占庭容错算法"><span class="nav-number">1.2.</span> <span class="nav-text">实用拜占庭容错算法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#0-概述"><span class="nav-number">1.2.1.</span> <span class="nav-text">0. 概述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-介绍"><span class="nav-number">1.2.2.</span> <span class="nav-text">1. 介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-系统模型"><span class="nav-number">1.2.3.</span> <span class="nav-text">2. 系统模型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-服务属性"><span class="nav-number">1.2.4.</span> <span class="nav-text">3. 服务属性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-算法"><span class="nav-number">1.2.5.</span> <span class="nav-text">4. 算法</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#4-1-客户端"><span class="nav-number">1.2.5.1.</span> <span class="nav-text">4.1 客户端</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-2-普通情况操作"><span class="nav-number">1.2.5.2.</span> <span class="nav-text">4.2 普通情况操作</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-3-垃圾回收"><span class="nav-number">1.2.5.3.</span> <span class="nav-text">4.3 垃圾回收</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-4-View-Changes"><span class="nav-number">1.2.5.4.</span> <span class="nav-text">4.4 View Changes</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料"><span class="nav-number">1.3.</span> <span class="nav-text">参考资料</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

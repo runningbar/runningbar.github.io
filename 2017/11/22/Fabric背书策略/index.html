@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  背书策略背书策略是用来指导一个peer如何确定一笔交易是否被正确的背书。当一个peer接收到一笔交易后，它会invoke与该交易的chaincode相关的VSCC(Validation System Chaincode)，作为交易确认流程的一部分来确定交易的有效性。回想一下，一个交易包含了一个或多个背书peer的认可。VSCC的任务是做出如下决">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Fabric背书策略">
+<meta property="og:url" content="http://www.huamo.online/2017/11/22/Fabric背书策略/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  背书策略背书策略是用来指导一个peer如何确定一笔交易是否被正确的背书。当一个peer接收到一笔交易后，它会invoke与该交易的chaincode相关的VSCC(Validation System Chaincode)，作为交易确认流程的一部分来确定交易的有效性。回想一下，一个交易包含了一个或多个背书peer的认可。VSCC的任务是做出如下决">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.967Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Fabric背书策略">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  背书策略背书策略是用来指导一个peer如何确定一笔交易是否被正确的背书。当一个peer接收到一笔交易后，它会invoke与该交易的chaincode相关的VSCC(Validation System Chaincode)，作为交易确认流程的一部分来确定交易的有效性。回想一下，一个交易包含了一个或多个背书peer的认可。VSCC的任务是做出如下决">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2017/11/22/Fabric背书策略/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Fabric背书策略 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2017/11/22/Fabric背书策略/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Fabric背书策略
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2017-11-22 23:27:32" itemprop="dateCreated datePublished" datetime="2017-11-22T23:27:32+08:00">2017-11-22</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/blockchain/" itemprop="url" rel="index"><span itemprop="name">blockchain</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h2 id="背书策略"><a href="#背书策略" class="headerlink" title="背书策略"></a>背书策略</h2><p>背书策略是用来指导一个<code>peer</code>如何确定一笔交易是否被正确的背书。当一个<code>peer</code>接收到一笔交易后，它会<code>invoke</code>与该交易的<code>chaincode</code>相关的<code>VSCC(Validation System Chaincode)</code>，作为交易确认流程的一部分来确定交易的有效性。回想一下，一个交易包含了一个或多个背书<code>peer</code>的认可。<code>VSCC</code>的任务是做出如下决定：</p>
+<ul>
+<li>所有的背书都是有效的（比如：它们是有效的证书在预期的消息上做了有效的签名）。</li>
+<li>拥有合适数量的背书认可。</li>
+<li>背书都来自于预期的来源。<a id="more"></a></li>
+</ul>
+<p>背书策略是指定第2点和第3点的一种方式。</p>
+<h3 id="背书策略设计"><a href="#背书策略设计" class="headerlink" title="背书策略设计"></a>背书策略设计</h3><p>背书策略有2个重要组件： 1. 一个原则。 2. 一个门槛</p>
+<p>原则<code>P</code>定义了期待哪个主体的签名。</p>
+<p>门槛<code>T</code>有2个输入：一个实数<code>t</code>(门槛值)和一个包含了<code>n</code>个原则的列表；这个门槛本质上就是刻画了满足<code>n</code>个原则的预期，<code>t</code>就是必须要满足的数量。</p>
+<p>举个例子： <code>T(2, &#39;A&#39;, &#39;B&#39;, &#39;C&#39;)</code>要求来自<code>A</code>, <code>B</code>或者<code>C</code>任意2个主体的签名；<code>T(1, &#39;A&#39;, T(2, &#39;B&#39;, &#39;C&#39;))</code>要求来自<code>A</code>或者<code>B</code>和<code>C</code>的签名。</p>
+<h3 id="CLI中的背书策略语法"><a href="#CLI中的背书策略语法" class="headerlink" title="CLI中的背书策略语法"></a><code>CLI</code>中的背书策略语法</h3><p>在<code>CLI</code>中，有一种简单的语言来表达策略，用布尔表达式来定义原则。</p>
+<p>一个原则根据<code>MSP</code>来描述，用来验证签名者的身份以及签名者在<code>MSP</code>中的角色。目前，支持2种角色：<code>member</code>和<code>admin</code>。原则用<code>MSP.ROLE</code>格式来描述，其中<code>MSP</code>是需要的<code>MSP ID</code>，<code>ROLE</code>则是一个字符串，取值<code>member</code>或者<code>admin</code>。举一个有效的原则例子，比如<code>Org0.admin</code>（需要<code>Org0 MSP</code>中任意一个管理员的签名），或者<code>Org1.member</code>（需要<code>Org1 MSP</code>中任意一个成员的签名）。</p>
+<p>这种语言的语法是： <code>EXPR(E[, E...])</code></p>
+<p>其中<code>EXPR</code>要么是<code>AND</code>，要么是<code>OR</code>，代表了这2个布尔表达式的功能，而<code>E</code>要么是一个原则（根据上面的语法描述），要么就是另一个嵌套的<code>EXPR</code>。</p>
+<p>举个例子：<code>AND(&#39;Org1.member&#39;, &#39;Org2.member&#39;, &#39;Org3.member&#39;)</code>需要来自3个实体的所有签名；<code>OR(&#39;Org1.member&#39;, &#39;Org2.member&#39;)</code>需要来自2个实体中任意一个的签名；<code>OR(&#39;Org1.member&#39;, AND(&#39;Org2.member&#39;, &#39;Org3.member&#39;))</code>需要来自<code>Org1 MSP</code>中一个成员的签名，或者是，需要来自<code>Org2 MSP</code>中一个成员的签名以及来自<code>Org3 MSP</code>中一个成员的签名。</p>
+<h3 id="为一个chaincode指定背书策略"><a href="#为一个chaincode指定背书策略" class="headerlink" title="为一个chaincode指定背书策略"></a>为一个<code>chaincode</code>指定背书策略</h3><p>使用这种语言，一个<code>chaincode</code>部署者可以根据指定的策略，来验证一个chaincode的背书是有效的。<strong>记住:</strong> 默认的策略是需要一个来自<code>MSPID</code>为<code>DEFAULT</code>的<code>MSP</code>中一个成员的签名。如果在<code>CLI</code>中没有指定任何策略，那么这个默认策略就会生效。</p>
+<p>策略可以在部署时通过<code>-p</code>开关来指定</p>
+<h3 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h3><ol>
+<li><a href="http://hyperledger-fabric.readthedocs.io/en/release/endorsement-policies.html" target="_blank" rel="noopener">http://hyperledger-fabric.readthedocs.io/en/release/endorsement-policies.html</a></li>
+</ol>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/11/22/Fabric为什么用CouchDB/" rel="next" title="Fabric为什么用CouchDB">
+                <i class="fa fa-chevron-left"></i> Fabric为什么用CouchDB
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/11/30/docker积累/" rel="prev" title="docker积累">
+                docker积累 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#背书策略"><span class="nav-number">1.</span> <span class="nav-text">背书策略</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#背书策略设计"><span class="nav-number">1.1.</span> <span class="nav-text">背书策略设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#CLI中的背书策略语法"><span class="nav-number">1.2.</span> <span class="nav-text">CLI中的背书策略语法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#为一个chaincode指定背书策略"><span class="nav-number">1.3.</span> <span class="nav-text">为一个chaincode指定背书策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考文档"><span class="nav-number">1.4.</span> <span class="nav-text">参考文档</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

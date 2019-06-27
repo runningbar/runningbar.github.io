@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="以下流程在minikube中完全跑通  完成效果 可以在kubernetes集群中，搭建自己的docker registry registry支持TLS验证，并且TLS证书支持IP验证【默认只支持域名验证】 registry不仅可以被集群中pod访问，而且可以被集群外部访问。 registry使用的存储基于NFS，这就意味着你可以将镜像存在网络中其它主机上。  完整流程创建PV仓库的首要任务就是">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kubernetes搭建TLS私有docker仓库">
+<meta property="og:url" content="http://www.huamo.online/2017/06/07/Kubernetes搭建TLS私有docker仓库/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="以下流程在minikube中完全跑通  完成效果 可以在kubernetes集群中，搭建自己的docker registry registry支持TLS验证，并且TLS证书支持IP验证【默认只支持域名验证】 registry不仅可以被集群中pod访问，而且可以被集群外部访问。 registry使用的存储基于NFS，这就意味着你可以将镜像存在网络中其它主机上。  完整流程创建PV仓库的首要任务就是">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.969Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Kubernetes搭建TLS私有docker仓库">
+<meta name="twitter:description" content="以下流程在minikube中完全跑通  完成效果 可以在kubernetes集群中，搭建自己的docker registry registry支持TLS验证，并且TLS证书支持IP验证【默认只支持域名验证】 registry不仅可以被集群中pod访问，而且可以被集群外部访问。 registry使用的存储基于NFS，这就意味着你可以将镜像存在网络中其它主机上。  完整流程创建PV仓库的首要任务就是">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2017/06/07/Kubernetes搭建TLS私有docker仓库/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Kubernetes搭建TLS私有docker仓库 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2017/06/07/Kubernetes搭建TLS私有docker仓库/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Kubernetes搭建TLS私有docker仓库
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2017-06-07 19:10:30" itemprop="dateCreated datePublished" datetime="2017-06-07T19:10:30+08:00">2017-06-07</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Kubernetes/" itemprop="url" rel="index"><span itemprop="name">Kubernetes</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>以下流程在<code>minikube</code>中完全跑通</p>
+</blockquote>
+<h2 id="完成效果"><a href="#完成效果" class="headerlink" title="完成效果"></a>完成效果</h2><ul>
+<li>可以在kubernetes集群中，搭建自己的<code>docker registry</code></li>
+<li><code>registry</code>支持TLS验证，并且TLS证书支持IP验证【默认只支持域名验证】</li>
+<li><code>registry</code>不仅可以被集群中<code>pod</code>访问，而且可以被集群外部访问。</li>
+<li><code>registry</code>使用的存储基于NFS，这就意味着你可以将镜像存在网络中其它主机上。</li>
+</ul>
+<h2 id="完整流程"><a href="#完整流程" class="headerlink" title="完整流程"></a>完整流程</h2><h3 id="创建PV"><a href="#创建PV" class="headerlink" title="创建PV"></a>创建PV</h3><p>仓库的首要任务就是存储数据。我们需要决定将数据存储在哪里，可以使用Kubernetes的<code>PersistentVolume</code>对象实现持久化。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"># kube-registry-pv.yaml</span><br><span class="line">kind: PersistentVolume</span><br><span class="line">apiVersion: v1</span><br><span class="line">metadata:</span><br><span class="line">        name: kube-system-kube-registry-pv</span><br><span class="line">        labels:</span><br><span class="line">                kubernetes.io/cluster-service: &quot;true&quot;</span><br><span class="line">spec:</span><br><span class="line">        capacity:</span><br><span class="line">                storage: 23Gi</span><br><span class="line">        accessModes:</span><br><span class="line">                - ReadWriteOnce</span><br><span class="line">        storageClassName: nfs-registry</span><br><span class="line">        nfs:</span><br><span class="line">                path: &quot;/home/mine/nfs&quot;</span><br><span class="line">                server: 192.168.1.100</span><br></pre></td></tr></table></figure>
+
+<p>这里面使用nfs作为持久化挂载，关于如何搭建NFS服务器，可以查看我的这篇文章：<a href="http://www.huamo.online/2017/06/05/Ubuntu-NFS%E4%BD%BF%E7%94%A8/">Linux NFS使用</a> 。</p>
+<h3 id="创建PVC来绑定PV"><a href="#创建PVC来绑定PV" class="headerlink" title="创建PVC来绑定PV"></a>创建PVC来绑定PV</h3><p>PV持久卷创建完毕后，我们可以使用<code>PersistentVolumeClaim</code>来绑定这个PV。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"># kube-registry-pvc.yaml</span><br><span class="line">kind: PersistentVolumeClaim</span><br><span class="line">apiVersion: v1</span><br><span class="line">metadata:</span><br><span class="line">        name: kube-registry-pvc</span><br><span class="line">        namespace: kube-system</span><br><span class="line">        labels:</span><br><span class="line">                kubernetes.io/cluster-service: &quot;true&quot;</span><br><span class="line">spec:</span><br><span class="line">        accessModes:</span><br><span class="line">                - ReadWriteOnce</span><br><span class="line">        storageClassName: nfs-registry</span><br><span class="line">        resources:</span><br><span class="line">                requests:</span><br><span class="line">                        storage: 23Gi</span><br></pre></td></tr></table></figure>
+
+<h3 id="创建docker-registry"><a href="#创建docker-registry" class="headerlink" title="创建docker registry"></a>创建docker registry</h3><p>现在我们可以创建一个Docker仓库了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"># kube-registry-rc.yaml</span><br><span class="line"></span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: ReplicationController</span><br><span class="line">metadata:</span><br><span class="line">    name: kube-registry-v0</span><br><span class="line">    namespace: kube-system</span><br><span class="line">    labels:</span><br><span class="line">        k8s-app: kube-registry</span><br><span class="line">        version: v0</span><br><span class="line">        #kubernetes.io/cluster-service: &quot;true&quot;</span><br><span class="line">spec:</span><br><span class="line">    replicas: 1</span><br><span class="line">    selector:</span><br><span class="line">        k8s-app: kube-registry</span><br><span class="line">        version: v0</span><br><span class="line">    template:</span><br><span class="line">        metadata:</span><br><span class="line">            labels:</span><br><span class="line">                k8s-app: kube-registry</span><br><span class="line">                version: v0</span><br><span class="line">                #kubernetes.io/cluster-service: &quot;true&quot;</span><br><span class="line">        spec:</span><br><span class="line">            containers:</span><br><span class="line">            - name: registry</span><br><span class="line">              image: registry:2</span><br><span class="line">              resources:</span><br><span class="line">                limits:</span><br><span class="line">                    cpu: 100m</span><br><span class="line">                    memory: 100Mi</span><br><span class="line">              env:</span><br><span class="line">              - name: REGISTRY_HTTP_ADDR</span><br><span class="line">                value: :5000</span><br><span class="line">              - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY</span><br><span class="line">                value: /var/lib/registry</span><br><span class="line">              - name: REGISTRY_HTTP_TLS_CERTIFICATE</span><br><span class="line">                value: /certs/server.crt</span><br><span class="line">              - name: REGISTRY_HTTP_TLS_KEY</span><br><span class="line">                value: /certs/server.key</span><br><span class="line">              volumeMounts:</span><br><span class="line">              - name: image-store</span><br><span class="line">                mountPath: /var/lib/registry</span><br><span class="line">              - name: cert-dir</span><br><span class="line">                mountPath: /certs</span><br><span class="line">              ports:</span><br><span class="line">              - containerPort: 5000</span><br><span class="line">                hostPort: 5000</span><br><span class="line">                name: registry</span><br><span class="line">                protocol: TCP</span><br><span class="line">            volumes:</span><br><span class="line">            - name: image-store</span><br><span class="line">              persistentVolumeClaim:</span><br><span class="line">                claimName: kube-registry-pvc</span><br><span class="line">            - name: cert-dir</span><br><span class="line">              secret:</span><br><span class="line">                secretName: registry-tls-secret</span><br></pre></td></tr></table></figure>
+
+<p>这里面使用了<code>hostPort: 5000</code>将Pod中的仓库端口映射到minikube的<code>5000</code>端口中，以便集群外部也能访问这个docker registry。</p>
+<p>并且，我们通过使用名叫<code>registry-tls-secret</code>的<code>Secret</code>资源，为这个registry pod提供了TLS必要的<code>server.crt</code>和<code>server.key</code>。这个<code>Secrets</code>以及证书相关，会在下文介绍。</p>
+<h3 id="创建Service暴露Pod服务"><a href="#创建Service暴露Pod服务" class="headerlink" title="创建Service暴露Pod服务"></a>创建Service暴露Pod服务</h3><p>我们可以将registry Pod作为一个<code>Service</code>暴露出来。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"># kube-registry-svc.yaml</span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Service</span><br><span class="line">metadata:</span><br><span class="line">    name: kube-registry</span><br><span class="line">    namespace: kube-system</span><br><span class="line">    labels:</span><br><span class="line">        k8s-app: kube-registry</span><br><span class="line">        #kubernetes.io/cluster-service: &quot;true&quot;</span><br><span class="line">        kubernetes.io/name: &quot;KubeRegistry&quot;</span><br><span class="line">spec:</span><br><span class="line">    selector:</span><br><span class="line">        k8s-app: kube-registry</span><br><span class="line">    #type: NodePort</span><br><span class="line">    ports:</span><br><span class="line">    - name: registry</span><br><span class="line">      port: 5000</span><br><span class="line">      #nodePort: 30001</span><br><span class="line">      protocol: TCP</span><br></pre></td></tr></table></figure>
+
+<p>OK，目前为止，我们已经建立了docker registry的相关资源，接下来就是准备TLS支持的相关工作。</p>
+<h3 id="生成服务端crt证书和key私钥"><a href="#生成服务端crt证书和key私钥" class="headerlink" title="生成服务端crt证书和key私钥"></a>生成服务端crt证书和key私钥</h3><p>这一段走的时候不太顺利，尝试了很多方法，也解决了很多问题，大致包括：</p>
+<ul>
+<li>TLS证书需要支持IP验证。默认情况下证书只支持域名校验，否则会报<code>IP SANs</code>错误<code>cannot validate certificate for 192.168.1.100 because it doesn&#39;t contain any IP SANs</code>。</li>
+<li>不能使用自签名证书。首先必须要自己生成一个CA crt证书，然后用这个CA来签名服务端证书，然后把该CA证书放在docker的<code>custom root CA</code>目录下，如果采用自签名证书，或者不提供CA，则会报错<code>x509: certificate signed by unknown authority</code>。</li>
+</ul>
+<p>如前所述，我们将registry服务映射到了minikube的<code>5000</code>端口上，假设minikube的IP地址为<code>192.168.99.100</code>，根据这些信息我们来生成<code>192.168.99.100:5000</code>服务端TLS证书。</p>
+<blockquote>
+<p>当然了，如果你是土豪，可以直接到公网CA上直接买证书，就可以跳过这一段辛酸的经验</p>
+</blockquote>
+<h4 id="解决IP-SANs问题"><a href="#解决IP-SANs问题" class="headerlink" title="解决IP SANs问题"></a>解决<code>IP SANs</code>问题</h4><p>为了让证书支持IP验证，我们首先需要定制一个自己的openssl模板文件，创建文件<code>openssl.cnf</code>，内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">[ req ]</span><br><span class="line">#default_bits           = 2048</span><br><span class="line">#default_md             = sha256</span><br><span class="line">#default_keyfile        = privkey.pem</span><br><span class="line">distinguished_name      = req_distinguished_name</span><br><span class="line">attributes              = req_attributes</span><br><span class="line">req_extensions          = v3_req</span><br><span class="line"></span><br><span class="line">[ req_distinguished_name ]</span><br><span class="line">countryName                     = Country Name (2 letter code)</span><br><span class="line">countryName_min                 = 2</span><br><span class="line">countryName_max                 = 2</span><br><span class="line">stateOrProvinceName             = State or Province Name (full name)</span><br><span class="line">localityName                    = Locality Name (eg, city)</span><br><span class="line">0.organizationName              = Organization Name (eg, company)</span><br><span class="line">organizationalUnitName          = Organizational Unit Name (eg, section)</span><br><span class="line">commonName                      = Common Name (eg, fully qualified host name)</span><br><span class="line">commonName_max                  = 64</span><br><span class="line">emailAddress                    = Email Address</span><br><span class="line">emailAddress_max                = 64</span><br><span class="line"></span><br><span class="line">[ req_attributes ]</span><br><span class="line">challengePassword               = A challenge password</span><br><span class="line">challengePassword_min           = 4</span><br><span class="line">challengePassword_max           = 20</span><br><span class="line"></span><br><span class="line">[ v3_req ]</span><br><span class="line">subjectAltName = IP:192.168.99.100</span><br></pre></td></tr></table></figure>
+
+<p>主要是<code>subjectAltName = IP:192.168.99.100</code>这句话，开启了对IP的验证功能。</p>
+<h4 id="生成ca-key"><a href="#生成ca-key" class="headerlink" title="生成ca.key"></a>生成<code>ca.key</code></h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -out ca.key 2048</span><br></pre></td></tr></table></figure>
+
+<h4 id="基于openssl-cnf生成ca-crt"><a href="#基于openssl-cnf生成ca-crt" class="headerlink" title="基于openssl.cnf生成ca.crt"></a>基于<code>openssl.cnf</code>生成<code>ca.crt</code></h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl req -x509 -new -nodes -key ca.key -subj &quot;/CN=192.168.99.100:5000&quot; -days 5000 -config openssl.cnf -out ca.crt</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>备注：当然，推荐使用域名作为CN，这样的话，就不需要openssl.cnf文件了，只需要在hosts文件中做域名到IP的映射就行，如果你有公网域名，那就更方便了，连hosts也不用改，DNS服务商已为你做好了一切。</p>
+</blockquote>
+<h4 id="生成server-key"><a href="#生成server-key" class="headerlink" title="生成server.key"></a>生成<code>server.key</code></h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -out server.key 2048</span><br></pre></td></tr></table></figure>
+
+<p>这个<code>server.key</code>就是前面<code>ReplicationController</code>配置文件里面提到的key文件。</p>
+<h4 id="基于openssl-cnf生成server-csr"><a href="#基于openssl-cnf生成server-csr" class="headerlink" title="基于openssl.cnf生成server.csr"></a>基于<code>openssl.cnf</code>生成<code>server.csr</code></h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl req -new -key server.key -subj &quot;/CN=192.168.99.100:5000&quot; -config openssl.cnf -out server.csr</span><br></pre></td></tr></table></figure>
+
+<h4 id="生成server-crt"><a href="#生成server-crt" class="headerlink" title="生成server.crt"></a>生成<code>server.crt</code></h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 5000 -extensions v3_req -extfile openssl.cnf</span><br></pre></td></tr></table></figure>
+
+<p>这个命令同时还会生成<code>ca.srl</code>文件。这个<code>server.crt</code>就是前面<code>ReplicationController</code>配置文件里面提到的crt文件。</p>
+<p>到这儿，TLS所需要的证书和私钥已经全部准备完毕。</p>
+<h3 id="将server-key和server-crt打包到Secrets中"><a href="#将server-key和server-crt打包到Secrets中" class="headerlink" title="将server.key和server.crt打包到Secrets中"></a>将server.key和server.crt打包到Secrets中</h3><p>准备好了<code>server.key</code>和<code>server.crt</code>，需要提供给registry pod，这样才能提供TLS支持，这里使用kubernetes的<code>Secrets</code>资源来提供配置。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl --namespace=kube-system create secret generic registry-tls-secret --from-file=server.crt=./server.crt --from-file=server.key=./server.key</span><br></pre></td></tr></table></figure>
+
+<p>这个<code>Secret</code>资源名称即为<code>registry-tls-secret</code>，正好被之前的<code>ReplicationController</code>所引用。</p>
+<h3 id="将所有准备工作串起来"><a href="#将所有准备工作串起来" class="headerlink" title="将所有准备工作串起来"></a>将所有准备工作串起来</h3><p>到这里，所有的准备资源都已就绪，现在需要把它们整合起来并运行。首先看下当前的目录结构：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">.</span><br><span class="line">├── ca.crt</span><br><span class="line">├── ca.key</span><br><span class="line">├── ca.srl</span><br><span class="line">├── kube-registry-pvc.yaml</span><br><span class="line">├── kube-registry-pv.yaml</span><br><span class="line">├── kube-registry-rc.yaml</span><br><span class="line">├── kube-registry-svc.yaml</span><br><span class="line">├── openssl.cnf</span><br><span class="line">├── server.crt</span><br><span class="line">├── server.csr</span><br><span class="line">└── server.key</span><br></pre></td></tr></table></figure>
+
+<p>创建文件<code>start.sh</code>，这样便于随时自动化启动运行：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">kubectl --namespace=kube-system create secret generic registry-tls-secret --from-file=server.crt=./server.crt --from-file=server.key=./server.key</span><br><span class="line">kubectl create -f kube-registry-pv.yaml</span><br><span class="line">kubectl create -f kube-registry-pvc.yaml</span><br><span class="line">kubectl create -f kube-registry-rc.yaml</span><br><span class="line">kubectl create -f kube-registry-svc.yaml</span><br></pre></td></tr></table></figure>
+
+<p>创建文件<code>delete.sh</code>，便于自动化关闭服务：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">kubectl --namespace=kube-system delete secrets registry-tls-secret</span><br><span class="line">kubectl delete -f kube-registry-pv.yaml</span><br><span class="line">kubectl delete -f kube-registry-pvc.yaml</span><br><span class="line">kubectl delete -f kube-registry-rc.yaml</span><br><span class="line">kubectl delete -f kube-registry-svc.yaml</span><br></pre></td></tr></table></figure>
+
+<p>将一切运行起来：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sh ./delete.sh /*删除所有相关资源以初始化*/</span><br><span class="line">sh ./start.sh /*运行支持tls的docker registry*/</span><br><span class="line">kubectl --namespace=kube-system get all /*查看所有相关资源是否都正常running*/</span><br><span class="line"></span><br><span class="line">/*有可能会因为在墙内，导致相关container镜像下载失败，进而不能正常运行，需要自行翻墙*/</span><br></pre></td></tr></table></figure>
+
+<h3 id="验证这一切跑通"><a href="#验证这一切跑通" class="headerlink" title="验证这一切跑通"></a>验证这一切跑通</h3><p>我们可以在能访问<code>192.168.99.100</code>的任一台机器上验证这一切，在验证之前，还有一项准备工作要做，否则docker会提示你证书无效：<code>x509: certificate signed by unknown authority</code></p>
+<h4 id="向验证机器的docker提供CA证书："><a href="#向验证机器的docker提供CA证书：" class="headerlink" title="向验证机器的docker提供CA证书："></a>向验证机器的docker提供CA证书：</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sudo mkdir -p /etc/docker/certs.d/192.168.99.100:5000</span><br><span class="line">/*如果之前使用域名作为CN，那这里就用域名作为最后一个目录名字*/</span><br><span class="line"></span><br><span class="line">/*将之前生成的ca.crt放在docker custom root ca目录下*/</span><br><span class="line">cp ./ca.crt /etc/docker/certs.d/192.168.99.100:5000/</span><br></pre></td></tr></table></figure>
+
+<h4 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">docker pull busybox</span><br><span class="line">docker tag busybox 192.168.99.100:5000/busybox</span><br><span class="line">docker push 192.168.99.100:5000/busybox</span><br><span class="line">docker pull 192.168.99.100:5000/busybox</span><br></pre></td></tr></table></figure>
+
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><ul>
+<li><a href="https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/registry" target="_blank" rel="noopener">Private Docker Registry in Kubernetes</a></li>
+<li><a href="https://github.com/kubernetes/kubernetes/blob/master/cluster/addons/registry/tls/README.md" target="_blank" rel="noopener">Enable TLS for Kube-Registry</a></li>
+<li><a href="http://www.tuicool.com/articles/IZza6jA" target="_blank" rel="noopener">Https原理以及服务端和客户端golang的基本实现</a></li>
+<li><a href="https://stackoverflow.com/questions/8443081/how-are-ssl-certificate-server-names-resolved-can-i-add-alternative-names-using/8444863#8444863" target="_blank" rel="noopener">How are SSL certificate server names resolved/Can I add alternative names using keytool?</a></li>
+</ul>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/06/06/Ubuntu下安装Kubernetes产品环境/" rel="next" title="Ubuntu下搭建Kubernetes产品环境集群">
+                <i class="fa fa-chevron-left"></i> Ubuntu下搭建Kubernetes产品环境集群
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/06/14/使用kubeadm搭建通用的Kubernetes集群/" rel="prev" title="使用kubeadm搭建通用的Kubernetes集群">
+                使用kubeadm搭建通用的Kubernetes集群 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#完成效果"><span class="nav-number">1.</span> <span class="nav-text">完成效果</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#完整流程"><span class="nav-number">2.</span> <span class="nav-text">完整流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#创建PV"><span class="nav-number">2.1.</span> <span class="nav-text">创建PV</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#创建PVC来绑定PV"><span class="nav-number">2.2.</span> <span class="nav-text">创建PVC来绑定PV</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#创建docker-registry"><span class="nav-number">2.3.</span> <span class="nav-text">创建docker registry</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#创建Service暴露Pod服务"><span class="nav-number">2.4.</span> <span class="nav-text">创建Service暴露Pod服务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#生成服务端crt证书和key私钥"><span class="nav-number">2.5.</span> <span class="nav-text">生成服务端crt证书和key私钥</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#解决IP-SANs问题"><span class="nav-number">2.5.1.</span> <span class="nav-text">解决IP SANs问题</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#生成ca-key"><span class="nav-number">2.5.2.</span> <span class="nav-text">生成ca.key</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#基于openssl-cnf生成ca-crt"><span class="nav-number">2.5.3.</span> <span class="nav-text">基于openssl.cnf生成ca.crt</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#生成server-key"><span class="nav-number">2.5.4.</span> <span class="nav-text">生成server.key</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#基于openssl-cnf生成server-csr"><span class="nav-number">2.5.5.</span> <span class="nav-text">基于openssl.cnf生成server.csr</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#生成server-crt"><span class="nav-number">2.5.6.</span> <span class="nav-text">生成server.crt</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#将server-key和server-crt打包到Secrets中"><span class="nav-number">2.6.</span> <span class="nav-text">将server.key和server.crt打包到Secrets中</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#将所有准备工作串起来"><span class="nav-number">2.7.</span> <span class="nav-text">将所有准备工作串起来</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#验证这一切跑通"><span class="nav-number">2.8.</span> <span class="nav-text">验证这一切跑通</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#向验证机器的docker提供CA证书："><span class="nav-number">2.8.1.</span> <span class="nav-text">向验证机器的docker提供CA证书：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#验证"><span class="nav-number">2.8.2.</span> <span class="nav-text">验证</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考文章"><span class="nav-number">3.</span> <span class="nav-text">参考文章</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

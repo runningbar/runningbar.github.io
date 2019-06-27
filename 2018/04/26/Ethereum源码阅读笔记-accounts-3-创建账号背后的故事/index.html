@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  new一个账号123$ geth account new --datadir &quot;./datadir1&quot;password: 12345678Address: &amp;#123;26add576232dad627a9102015a7b11763e98f85b&amp;#125;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Ethereum源码阅读笔记-accounts-3-创建账号背后的故事">
+<meta property="og:url" content="http://www.huamo.online/2018/04/26/Ethereum源码阅读笔记-accounts-3-创建账号背后的故事/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  new一个账号123$ geth account new --datadir &quot;./datadir1&quot;password: 12345678Address: &amp;#123;26add576232dad627a9102015a7b11763e98f85b&amp;#125;">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.966Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Ethereum源码阅读笔记-accounts-3-创建账号背后的故事">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  new一个账号123$ geth account new --datadir &quot;./datadir1&quot;password: 12345678Address: &amp;#123;26add576232dad627a9102015a7b11763e98f85b&amp;#125;">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2018/04/26/Ethereum源码阅读笔记-accounts-3-创建账号背后的故事/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Ethereum源码阅读笔记-accounts-3-创建账号背后的故事 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2018/04/26/Ethereum源码阅读笔记-accounts-3-创建账号背后的故事/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Ethereum源码阅读笔记-accounts-3-创建账号背后的故事
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-04-26 12:00:50" itemprop="dateCreated datePublished" datetime="2018-04-26T12:00:50+08:00">2018-04-26</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/ethereum/" itemprop="url" rel="index"><span itemprop="name">ethereum</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h1 id="new一个账号"><a href="#new一个账号" class="headerlink" title="new一个账号"></a><code>new</code>一个账号</h1><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ geth account new --datadir <span class="string">"./datadir1"</span></span><br><span class="line">password: 12345678</span><br><span class="line">Address: &#123;26add576232dad627a9102015a7b11763e98f85b&#125;</span><br></pre></td></tr></table></figure>
+
+<a id="more"></a>
+
+<p>这样就创建了一个新的账号，地址为<code>26add576232dad627a9102015a7b11763e98f85b</code>，密码为<code>12345678</code>，<code>keystore</code>文件存在了<code>./datadir1/keystore</code>中</p>
+<blockquote>
+<p>address为20个字节，即16进制表示为40位。</p>
+</blockquote>
+<h1 id="背后的故事"><a href="#背后的故事" class="headerlink" title="背后的故事"></a>背后的故事</h1><h2 id="入口：accountCreate"><a href="#入口：accountCreate" class="headerlink" title="入口：accountCreate()"></a>入口：<code>accountCreate()</code></h2><p>在<code>cmd/geth/accountcmd.go</code>中找到了<code>geth account new</code>命令的入口：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// cmd/geth/accountcmd.go</span></span><br><span class="line"></span><br><span class="line">Name:   <span class="string">"new"</span>,</span><br><span class="line">Usage:  <span class="string">"Create a new account"</span>,</span><br><span class="line">Action: utils.MigrateFlags(accountCreate),</span><br><span class="line">Flags: []cli.Flag&#123;</span><br><span class="line">	utils.DataDirFlag,</span><br><span class="line">	utils.KeyStoreDirFlag,</span><br><span class="line">	utils.PasswordFileFlag,</span><br><span class="line">	utils.LightKDFFlag,</span><br><span class="line">&#125;,</span><br></pre></td></tr></table></figure>
+
+<p>发现入口方法为<code>accountCreate()</code>。该方法</p>
+<ol>
+<li><p>首先读取命令行输入的参数以更新geth中的各种配置</p>
+</li>
+<li><p>然后确定下来几个重要的参数：<code>scryptN, scryptP, keydir</code>，前两个用于加密生成的密钥，最后一个用于存放<code>keystore</code>文件。</p>
+</li>
+<li><p>获取密码：要么读取<code>--password</code>指定的密码文件第一行；要么让用户从命令行提供。</p>
+</li>
+<li><p>使用<code>keystore.StoreKey()</code>生成账户。</p>
+</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// cmd/geth/accountcmd.go</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// accountCreate根据命令行参数创建一个新账号放入keystore中。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">accountCreate</span><span class="params">(ctx *cli.Context)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// 生成默认配置</span></span><br><span class="line">	cfg := gethConfig&#123;Node: defaultNodeConfig()&#125;</span><br><span class="line">	<span class="comment">// 如果命令行指定了--config并且对应文件能找到，则读取config文件更新cfg</span></span><br><span class="line">	<span class="keyword">if</span> file := ctx.GlobalString(configFileFlag.Name); file != <span class="string">""</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err := loadConfig(file, &amp;cfg); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			utils.Fatalf(<span class="string">"%v"</span>, err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 使用命令行传入的参数更新节点相关的配置</span></span><br><span class="line">	<span class="comment">// 比如上面我们指定了--datadir，那么就在这一步更新到节点配置中</span></span><br><span class="line">	utils.SetNodeConfig(ctx, &amp;cfg.Node)</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 根据命令行的--lightkdf确定scrypt算法的参数，和keystore文件的存储目录</span></span><br><span class="line">	<span class="comment">// scrypt：内存密集的密钥生成函数（KDF）</span></span><br><span class="line">	<span class="comment">// 参见：https://tools.ietf.org/html/rfc7914</span></span><br><span class="line">	scryptN, scryptP, keydir, err := cfg.Node.AccountConfig()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		utils.Fatalf(<span class="string">"Failed to read configuration: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// MakePasswordList可以读取--password指定的文件内容</span></span><br><span class="line">	<span class="comment">// 文件内容按\n分隔，每一行内容再去掉尾部的\r</span></span><br><span class="line">	<span class="comment">// 以此作为密码列表passwordList</span></span><br><span class="line">	<span class="comment">// getPassPhrase传入的0，表示取passwordList[0]作为这个账号的密码（如果passwordList有内容的话）</span></span><br><span class="line">	<span class="comment">// 传入true，表示如果是命令行输入密码，则需要重复确认一次，如果不一致，则创建账户直接失败。</span></span><br><span class="line">	password := getPassPhrase(<span class="string">"Your new account is locked with a password. Please give a password. Do not forget this password."</span>, <span class="literal">true</span>, <span class="number">0</span>, utils.MakePasswordList(ctx))</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 最关键一步</span></span><br><span class="line">	<span class="comment">// 生成密钥，并用刚才获取的password加密，然后存在keydir目录中</span></span><br><span class="line">	address, err := keystore.StoreKey(keydir, password, scryptN, scryptP)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		utils.Fatalf(<span class="string">"Failed to create account: %v"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Printf(<span class="string">"Address: &#123;%x&#125;\n"</span>, address)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="核心：storeNewKey"><a href="#核心：storeNewKey" class="headerlink" title="核心：storeNewKey()"></a>核心：<code>storeNewKey()</code></h2><p>进入<code>keystore.StoreKey()</code>，发现主要是调用了<code>storeNewKey()</code>方法生成密钥和地址，<code>storeNewKey()</code>方法传入了一个<code>crand.Reader</code>，一个跨平台的伪随机数产生器。</p>
+<p><code>storeNewKey()</code>在顶层做了全部的工作，包括：</p>
+<ol>
+<li><p>调用<code>newKey()</code>生成私钥和账户地址。<code>newKey()</code>的实现包括：</p>
+<ul>
+<li><p>依赖于<code>crand.Reader</code>随机数产生器，使用<code>ECDSA</code>生成私钥<code>privKey</code>，该<code>privKey</code>结构体包含了<code>pubKey</code>和<code>D</code>，其中<code>D</code>非常重要，仅依靠<code>D</code>就能还原出对应的公私钥。</p>
+</li>
+<li><p>依赖生成的<code>pubKey</code>计算出一个<code>[20]byte</code>，这就是以太坊的账户地址。</p>
+</li>
+</ul>
+</li>
+<li><p>根据地址和前述的<code>datadir</code>参数，构建出以太坊的<code>Account</code>对象。</p>
+</li>
+<li><p>调用<code>StoreKey()</code>加密私钥，写入<code>keystore</code>文件中。<code>StoreKey()</code>的实现包括：</p>
+<ul>
+<li><p>基于<code>scryptN</code>, <code>scryptP</code>, <code>password</code>，使用<code>scrypt</code>算法生成加密<code>KEY</code></p>
+</li>
+<li><p>基于加密<code>KEY</code>，使用<code>AES</code>算法对生成的私钥<code>key.D</code>加密，只需要<code>D</code>就可以还原出公私钥。</p>
+</li>
+<li><p>原子写入<code>keystore</code>文件，内容包括：</p>
+<ul>
+<li><p>明文地址</p>
+</li>
+<li><p>明文<code>UUID</code></p>
+</li>
+<li><p><code>keystore</code>版本号<code>3</code></p>
+</li>
+<li><p>加密的<code>D</code>以及周边的解密线索。</p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><code>new</code>一个账户整个过程结束。</p>
+</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// accounts/keystore/key.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">storeNewKey</span><span class="params">(ks keyStore, rand io.Reader, auth <span class="keyword">string</span>)</span> <span class="params">(*Key, accounts.Account, error)</span></span> &#123;</span><br><span class="line">	key, err := newKey(rand)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, accounts.Account&#123;&#125;, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 基于创建的密钥，构建完整的Account对象</span></span><br><span class="line">	<span class="comment">// keyFileName用来生成keystore文件名：UTC--当前时间--生成的账户地址</span></span><br><span class="line">	<span class="comment">// Scheme：这里的账号后端协议模式都是"keystore"</span></span><br><span class="line">	<span class="comment">// Scheme目前查到可取的值有ledger, trezor, keystore</span></span><br><span class="line">	a := accounts.Account&#123;Address: key.Address, URL: accounts.URL&#123;Scheme: KeyStoreScheme, Path: ks.JoinPath(keyFileName(key.Address))&#125;&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 加密密钥并写入keystore文件</span></span><br><span class="line">	<span class="keyword">if</span> err := ks.StoreKey(a.URL.Path, key, auth); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		zeroKey(key.PrivateKey)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, a, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> key, a, err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newKey</span><span class="params">(rand io.Reader)</span> <span class="params">(*Key, error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 基于随机数创建私钥，这个私钥是个结构体，包含了公钥</span></span><br><span class="line">	privateKeyECDSA, err := ecdsa.GenerateKey(crypto.S256(), rand)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 基于私钥生成Key结构体</span></span><br><span class="line">	<span class="comment">// 结构体包含私钥，账户地址，uuid</span></span><br><span class="line">	<span class="keyword">return</span> newKeyFromECDSA(privateKeyECDSA), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newKeyFromECDSA</span><span class="params">(privateKeyECDSA *ecdsa.PrivateKey)</span> *<span class="title">Key</span></span> &#123;</span><br><span class="line">	id := uuid.NewRandom()</span><br><span class="line">	key := &amp;Key&#123;</span><br><span class="line">		Id:         id,</span><br><span class="line">		<span class="comment">// 公钥推导出地址</span></span><br><span class="line">		Address:    crypto.PubkeyToAddress(privateKeyECDSA.PublicKey),</span><br><span class="line">		<span class="comment">// 只存私钥，因为地址和公钥都能从私钥获取到。</span></span><br><span class="line">		<span class="comment">// 而且这里总是存的私钥明文。</span></span><br><span class="line">		PrivateKey: privateKeyECDSA,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> key</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过公钥生成地址的方法由如下函数<code>PubkeyToAddress()</code>生成。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// crypto/crypto.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">PubkeyToAddress</span><span class="params">(p ecdsa.PublicKey)</span> <span class="title">common</span>.<span class="title">Address</span></span> &#123;</span><br><span class="line">	pubBytes := FromECDSAPub(&amp;p)</span><br><span class="line">	<span class="comment">// BytesToAddress会将传入的[]byte b赋值给[20]byte a，作为账户地址</span></span><br><span class="line">	<span class="comment">// 赋值规则如下：</span></span><br><span class="line">	<span class="comment">// 1. 若len(b) &gt; 20，则将最后20个字节复制更新a</span></span><br><span class="line">	<span class="comment">// 2. 否则，将b的所有字节复制更新a的尾部部分。</span></span><br><span class="line">	<span class="keyword">return</span> common.BytesToAddress(Keccak256(pubBytes[<span class="number">1</span>:])[<span class="number">12</span>:])</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">FromECDSAPub</span><span class="params">(pub *ecdsa.PublicKey)</span> []<span class="title">byte</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> pub == <span class="literal">nil</span> || pub.X == <span class="literal">nil</span> || pub.Y == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> elliptic.Marshal(S256(), pub.X, pub.Y)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Keccak256 calculates and returns the Keccak256 hash of the input data.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Keccak256</span><span class="params">(data ...[]<span class="keyword">byte</span>)</span> []<span class="title">byte</span></span> &#123;</span><br><span class="line">	d := sha3.NewKeccak256()</span><br><span class="line">	<span class="keyword">for</span> _, b := <span class="keyword">range</span> data &#123;</span><br><span class="line">		d.Write(b)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> d.Sum(<span class="literal">nil</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后一步就是加密密钥并写入<code>keystore</code>文件中。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// accounts/keystore/keystore_passphrase.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ks keyStorePassphrase)</span> <span class="title">StoreKey</span><span class="params">(filename <span class="keyword">string</span>, key *Key, auth <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// 基于password，scryptN, scryptP使用scrypt函数生成加密KEY</span></span><br><span class="line">	<span class="comment">// 然后用这个加密KEY用AES算法对账户私钥key.D进行加密，写入keystore文件的crypto字段中。</span></span><br><span class="line">	<span class="comment">// 因为以太坊用的ECDSA的公私钥都仅依赖于D参数，只要能拿到这个D，就能推算出公私钥</span></span><br><span class="line">	<span class="comment">// 推算方法见crypto/crypto.go中的ToECDSAUnsafe()函数</span></span><br><span class="line">	<span class="comment">// 日后使用password可以解密keystore文件获取私钥</span></span><br><span class="line">	<span class="comment">// 因为scryptN, scryptP都明文写在了crypto.kdfparams.n, crypto.kdfparams.p中。</span></span><br><span class="line">	keyjson, err := EncryptKey(key, auth, ks.scryptN, ks.scryptP)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 以700权限创建keystore目录（若不存在）</span></span><br><span class="line">	<span class="comment">// 以600权限先写入一个隐藏的临时文件：.&#123;filename&#125;.tmp</span></span><br><span class="line">	<span class="comment">// 写成功后再改名，以保证原子写入</span></span><br><span class="line">	<span class="keyword">return</span> writeKeyFile(filename, keyjson)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h1><ul>
+<li><p>keystore介绍：<a href="https://ethfans.org/posts/what-is-an-ethereum-keystore-file" target="_blank" rel="noopener">https://ethfans.org/posts/what-is-an-ethereum-keystore-file</a></p>
+</li>
+<li><p>scrypt算法介绍：<a href="https://www.tarsnap.com/scrypt/scrypt.pdf" target="_blank" rel="noopener">https://www.tarsnap.com/scrypt/scrypt.pdf</a></p>
+</li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/04/20/密码学基础知识/" rel="next" title="密码学基础知识">
+                <i class="fa fa-chevron-left"></i> 密码学基础知识
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/05/24/Ethereum转账流程剖析/" rel="prev" title="Ethereum转账流程剖析">
+                Ethereum转账流程剖析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#new一个账号"><span class="nav-number">1.</span> <span class="nav-text">new一个账号</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#背后的故事"><span class="nav-number">2.</span> <span class="nav-text">背后的故事</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#入口：accountCreate"><span class="nav-number">2.1.</span> <span class="nav-text">入口：accountCreate()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#核心：storeNewKey"><span class="nav-number">2.2.</span> <span class="nav-text">核心：storeNewKey()</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考文章"><span class="nav-number">3.</span> <span class="nav-text">参考文章</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  使用conjure-up + juju + lxd部署的kubernetes集群，如果需要修改master或者worker上的服务运行配置，知道以下几点将会很有帮助。   $SNAP_DATA指的就是/var/snap/...路径  所有的服务配置都在节点系统中的/var/snap/$app/.../args文件中  修改完配置后，直接rebo">
+<meta property="og:type" content="article">
+<meta property="og:title" content="juju kubernetes修改运行配置的方法">
+<meta property="og:url" content="http://www.huamo.online/2017/06/22/juju-kubernetes修改运行配置的方法/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  使用conjure-up + juju + lxd部署的kubernetes集群，如果需要修改master或者worker上的服务运行配置，知道以下几点将会很有帮助。   $SNAP_DATA指的就是/var/snap/...路径  所有的服务配置都在节点系统中的/var/snap/$app/.../args文件中  修改完配置后，直接rebo">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.971Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="juju kubernetes修改运行配置的方法">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  使用conjure-up + juju + lxd部署的kubernetes集群，如果需要修改master或者worker上的服务运行配置，知道以下几点将会很有帮助。   $SNAP_DATA指的就是/var/snap/...路径  所有的服务配置都在节点系统中的/var/snap/$app/.../args文件中  修改完配置后，直接rebo">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2017/06/22/juju-kubernetes修改运行配置的方法/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>juju kubernetes修改运行配置的方法 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2017/06/22/juju-kubernetes修改运行配置的方法/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">juju kubernetes修改运行配置的方法
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2017-06-22 16:44:34" itemprop="dateCreated datePublished" datetime="2017-06-22T16:44:34+08:00">2017-06-22</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Kubernetes/" itemprop="url" rel="index"><span itemprop="name">Kubernetes</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online">www.huamo.online</a></p>
+</blockquote>
+<p>使用<code>conjure-up</code> + <code>juju</code> + <code>lxd</code>部署的<code>kubernetes</code>集群，如果需要修改<code>master</code>或者<code>worker</code>上的服务运行配置，知道以下几点将会很有帮助。</p>
+<blockquote>
+<ul>
+<li><p><strong>$SNAP_DATA指的就是<code>/var/snap/...</code>路径</strong></p>
+</li>
+<li><p><strong>所有的服务配置都在节点系统中的<code>/var/snap/$app/.../args</code>文件中</strong></p>
+</li>
+<li><p><strong>修改完配置后，直接<code>reboot</code>重启节点系统，就会使改变生效</strong></p>
+</li>
+</ul>
+</blockquote>
+<p>例如，在初始部署的时候，集群的<code>--allow-privileged</code>没有设置为<code>true</code>，在实际使用中，发现需要容器特权，此时就需要修改服务配置。</p>
+<p><strong>解决方法</strong></p>
+<ol>
+<li>需要修改所有<code>worker</code>节点的<code>kubelet</code>运行参数，使其<code>--allow-privileged true</code>。</li>
+<li>同时，需要修改<code>master</code>节点的<code>kube-apiserver</code>运行参数，使其<code>--allow-privileged true</code></li>
+</ol>
+<p><strong>步骤</strong></p>
+<ul>
+<li><code>juju status</code>查看集群状态信息，有类似下文的输出</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">Unit                      Workload  Agent  Machine  Public address  Ports           Message</span><br><span class="line">easyrsa/0*                active    idle   0        10.0.8.3                        Certificate Authority connected.</span><br><span class="line">etcd/0*                   active    idle   1        10.0.8.203      2379/tcp        Healthy with 3 known peers</span><br><span class="line">etcd/1                    active    idle   2        10.0.8.14       2379/tcp        Healthy with 3 known peers</span><br><span class="line">etcd/2                    active    idle   3        10.0.8.133      2379/tcp        Healthy with 3 known peers</span><br><span class="line">kubeapi-load-balancer/0*  active    idle   4        10.0.8.234      443/tcp         Loadbalancer ready.</span><br><span class="line">kubernetes-master/0*      waiting   idle   5        10.0.8.77       6443/tcp        Waiting for kube-system pods to start</span><br><span class="line">  flannel/0*              active    idle            10.0.8.77                       Flannel subnet 10.1.66.1/24</span><br><span class="line">kubernetes-worker/0       active    idle   6        10.0.8.240      80/tcp,443/tcp  Kubernetes worker running.</span><br><span class="line">  flannel/3               active    idle            10.0.8.240                      Flannel subnet 10.1.84.1/24</span><br><span class="line">kubernetes-worker/1*      active    idle   7        10.0.8.138      80/tcp,443/tcp  Kubernetes worker running.</span><br><span class="line">  flannel/2               active    idle            10.0.8.138                      Flannel subnet 10.1.16.1/24</span><br><span class="line">kubernetes-worker/2       active    idle   8        10.0.8.139      80/tcp,443/tcp  Kubernetes worker running.</span><br><span class="line">  flannel/1               active    idle            10.0.8.139                      Flannel subnet 10.1.46.1/24</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p><code>juju ssh 6</code> 进入<code>kuberneter-worker/0</code>节点中</p>
+</li>
+<li><p>修改<code>worker</code>节点的<code>kubelet</code>运行参数</p>
+</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sudo -s</span><br><span class="line">vim /var/snap/kubelet/27/args</span><br><span class="line">添加一行后保存退出： --allow-privileged true</span><br><span class="line">reboot </span><br><span class="line">//改完配置后，直接reboot重启系统，即可使worker节点修改生效。</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>同样的方式，修改<code>master</code>节点的<code>kube-apiserver</code>运行参数</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">juju ssh 5</span><br><span class="line">sudo -s</span><br><span class="line">vim /var/snap/kube-apiserver/27/args</span><br><span class="line">添加一行后保存退出： --allow-privileged true</span><br><span class="line">reboot //重启master节点使改变生效</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>这样，整个集群就支持容器特权了。OKay！</li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/06/22/一些不错的网站/" rel="next" title="一些不错的网站">
+                <i class="fa fa-chevron-left"></i> 一些不错的网站
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/07/14/Git多仓库追踪更新的方法/" rel="prev" title="Git多仓库追踪更新的方法">
+                Git多仓库追踪更新的方法 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

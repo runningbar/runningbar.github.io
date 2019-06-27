@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  运行geth在Ethereum主网上运行全节点1$ geth console  该命令将会：  以快速同步模式启动geth（默认值，可以使用--syncmode参数修改），为了避免处理以太坊主网的所有历史数据，它需要下载更多的数据，该过程非常耗费CPU。  启动geth内置的JavaScript console，你可以调用所有官方的web3方法">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Ethereum初探">
+<meta property="og:url" content="http://www.huamo.online/2018/02/07/Ethereum初探/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  运行geth在Ethereum主网上运行全节点1$ geth console  该命令将会：  以快速同步模式启动geth（默认值，可以使用--syncmode参数修改），为了避免处理以太坊主网的所有历史数据，它需要下载更多的数据，该过程非常耗费CPU。  启动geth内置的JavaScript console，你可以调用所有官方的web3方法">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.966Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Ethereum初探">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  运行geth在Ethereum主网上运行全节点1$ geth console  该命令将会：  以快速同步模式启动geth（默认值，可以使用--syncmode参数修改），为了避免处理以太坊主网的所有历史数据，它需要下载更多的数据，该过程非常耗费CPU。  启动geth内置的JavaScript console，你可以调用所有官方的web3方法">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2018/02/07/Ethereum初探/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Ethereum初探 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2018/02/07/Ethereum初探/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Ethereum初探
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-02-07 15:01:00" itemprop="dateCreated datePublished" datetime="2018-02-07T15:01:00+08:00">2018-02-07</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/blockchain/" itemprop="url" rel="index"><span itemprop="name">blockchain</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h2 id="运行geth"><a href="#运行geth" class="headerlink" title="运行geth"></a>运行geth</h2><h3 id="在Ethereum主网上运行全节点"><a href="#在Ethereum主网上运行全节点" class="headerlink" title="在Ethereum主网上运行全节点"></a>在<code>Ethereum</code>主网上运行全节点</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ geth console</span><br></pre></td></tr></table></figure>
+
+<p>该命令将会：</p>
+<ul>
+<li><p>以快速同步模式启动<code>geth</code>（默认值，可以使用<code>--syncmode</code>参数修改），为了避免处理以太坊主网的所有历史数据，它需要下载更多的数据，该过程非常耗费CPU。</p>
+</li>
+<li><p>启动<code>geth</code>内置的<a href="https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console" target="_blank" rel="noopener"><code>JavaScript console</code></a>，你可以调用所有官方的<a href="https://github.com/ethereum/wiki/wiki/JavaScript-API" target="_blank" rel="noopener"><code>web3</code>方法</a>，也可以调用<code>geth</code>自己的<a href="https://github.com/ethereum/go-ethereum/wiki/Management-APIs" target="_blank" rel="noopener">控制类<code>API</code></a>，这个工具是可选的，如果你把它放在外面，也总是可以通过<code>geth attach</code>将其附加到一个已经运行的<code>geth</code>实例上。<a id="more"></a></p>
+</li>
+</ul>
+<h3 id="在Ethereum测试网络上运行全节点"><a href="#在Ethereum测试网络上运行全节点" class="headerlink" title="在Ethereum测试网络上运行全节点"></a>在<code>Ethereum</code>测试网络上运行全节点</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ geth --testnet console</span><br></pre></td></tr></table></figure>
+
+<p>面向开发者的过渡网络，如果你想创建以太坊智能合约来玩转以太坊，那么在整个系统稳定之前，你肯定不想花费任何真钱。换句话说，不加入以太坊主网络，而是将你的节点加入测试网络，除了测试网络上的以太币是假的（<code>play-Ether</code>），测试网络和主网完全一致</p>
+<p>虽然是测试网络，但是这里面的<code>console</code>子命令和上一节的功能完全一致。</p>
+<p>加上了<code>--testnet</code>标签之后，会对<code>geth</code>实例有一些小小的改动：</p>
+<ul>
+<li><p>不再使用默认的数据目录（比如在<code>Linux</code>中位于<code>~/.ethereum</code>），而是会存储在一个<code>testnet</code>子目录中（在<code>Linux</code>系统下位于<code>~/.ethereum/testnet</code>），<strong>注意</strong>，在<code>OSX</code>和<code>Linux</code>系统下，这还意味着想要附加到一个正在运行的测试网络节点上，<code>geth attach</code>命令还需要附带上自定义的数据路径，因为该命令会默认附加到生产节点上。例如<code>geth attach &lt;datadir&gt;/testnet/geth.ipc</code>。<code>Windows</code>用户不受此影响。</p>
+</li>
+<li><p>不再连入以太坊主网，客户端会连入测试网络，使用不同的<code>P2P</code>启动节点(<code>bootnodes</code>)，不同的网络<code>ID</code>以及创世状态。</p>
+</li>
+</ul>
+<h3 id="在Rinkeby测试网络上运行全节点"><a href="#在Rinkeby测试网络上运行全节点" class="headerlink" title="在Rinkeby测试网络上运行全节点"></a>在<code>Rinkeby</code>测试网络上运行全节点</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ geth --rinkeby console</span><br></pre></td></tr></table></figure>
+
+<p>上述测试网络是基于<code>ethash</code>工作证明共识算法的跨客户端网络。 因此，由于网络的低难度/低安全性，它有一定的额外开销，并且更容易受到重组攻击(<a href="https://en.bitcoin.it/wiki/Chain_Reorganization" target="_blank" rel="noopener"><code>reorganization attacks</code></a>)。 <code>Go-Ethereum</code>还支持连接到称为<code>Rinkeby</code>的权威证明(<code>proof-of-authority</code>)测试网络（由社区成员运营）。 这个网络更轻，更安全，但只支持<code>go-ethereum</code>。</p>
+<h3 id="运营一个Ethereum私有网络"><a href="#运营一个Ethereum私有网络" class="headerlink" title="运营一个Ethereum私有网络"></a>运营一个<code>Ethereum</code>私有网络</h3><p>运营你自己的私有网络需要更多的工作量，因为很多配置都是用于主网的配置，它们都需要手动重新设置。</p>
+<h4 id="1-定义私有的创世状态"><a href="#1-定义私有的创世状态" class="headerlink" title="1. 定义私有的创世状态"></a>1. 定义私有的创世状态</h4><p>首先，你需要为你自己的网络创建创世状态，所有节点都需要了解并达成一致。这被包含在一个<code>JSON</code>文件中（比如，称之为<code>genesis.json</code>）</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"config"</span>: &#123;</span><br><span class="line">        <span class="attr">"chainId"</span>: <span class="number">0</span>,</span><br><span class="line">        <span class="attr">"homesteadBlock"</span>: <span class="number">0</span>,</span><br><span class="line">        <span class="attr">"eip155Block"</span>: <span class="number">0</span>,</span><br><span class="line">        <span class="attr">"eip158Block"</span>: <span class="number">0</span></span><br><span class="line">    &#125;,</span><br><span class="line">  <span class="attr">"alloc"</span>      : &#123;&#125;,</span><br><span class="line">  <span class="attr">"coinbase"</span>   : <span class="string">"0x0000000000000000000000000000000000000000"</span>,</span><br><span class="line">  <span class="attr">"difficulty"</span> : <span class="string">"0x20000"</span>,</span><br><span class="line">  <span class="attr">"extraData"</span>  : <span class="string">""</span>,</span><br><span class="line">  <span class="attr">"gasLimit"</span>   : <span class="string">"0x2fefd8"</span>,</span><br><span class="line">  <span class="attr">"nonce"</span>      : <span class="string">"0x0000000000000042"</span>,</span><br><span class="line">  <span class="attr">"mixhash"</span>    : <span class="string">"0x0000000000000000000000000000000000000000000000000000000000000000"</span>,</span><br><span class="line">  <span class="attr">"parentHash"</span> : <span class="string">"0x0000000000000000000000000000000000000000000000000000000000000000"</span>,</span><br><span class="line">  <span class="attr">"timestamp"</span>  : <span class="string">"0x00"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述字段适用于绝大多数场景，但是我们还是推荐你将<code>nonce</code>改为其它的随机数，以防止未知的远程节点和你建立连接。如果你想对一些账户预充值方便测试，可以向<code>alloc</code>字段输入账号配置信息：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">"alloc": &#123;</span><br><span class="line">  "0x0000000000000000000000000000000000000001": &#123;"balance": "111111111"&#125;,</span><br><span class="line">  "0x0000000000000000000000000000000000000002": &#123;"balance": "222222222"&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>根据上面定义的创世状态，你需要在启动每一个<code>geth</code>节点之前，用这个<code>JSON</code>文件进行初始化，以保证所有的区块链参数都被正确设置：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ geth init path/to/genesis.json</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-创建集合点（rendezvous-point）"><a href="#2-创建集合点（rendezvous-point）" class="headerlink" title="2. 创建集合点（rendezvous point）"></a>2. 创建集合点（<code>rendezvous point</code>）</h4><p>如果所有要运行的节点都初始化为所需的创世状态，则需要启动引导节点，其他人可以使用它来在网络中和/或通过互联网找到彼此。 简便的方法是配置和运行专用的引导节点：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ bootnode --genkey=boot.key</span><br><span class="line">$ bootnode --nodekey=boot.key</span><br></pre></td></tr></table></figure>
+
+<p>引导节点上线后，它会显示一个<a href="https://github.com/ethereum/wiki/wiki/enode-url-format" target="_blank" rel="noopener">编码<code>URL</code></a>，其它节点可以使用该路径连接上引导节点并交换节点信息。<strong>确保你使用了外部可访问的<code>IP</code>来拿到真实的编码<code>URL</code>，而不是用显示的<code>IP</code>地址（很大可能是<code>[::]</code>）</strong></p>
+<blockquote>
+<p>备注：你也可以使用一个健全的<code>geth</code>节点作为引导节点（即用<code>geth</code>命令，而不是<code>bootnode</code>命令，但是这种方式官方不推荐）。</p>
+</blockquote>
+<h4 id="3-启动成员节点"><a href="#3-启动成员节点" class="headerlink" title="3. 启动成员节点"></a>3. 启动成员节点</h4><p>在引导节点运行中并且可以从外部访问的情况下（你可以尝试<code>telnet &lt;ip&gt; &lt;port&gt;来确保确实可达</code>），通过<code>--bootnodes</code>标签指向这个引导节点启动后续每一个<code>geth</code>节点，你可能还需要将你的私有网络数据单独存放，所以还需要加上<code>--datadir</code>标签自定义数据存放路径。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ geth --datadir=custom/data/folder --bootnodes=&lt;bootnode-encode-url-from-above&gt;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>备注：由于你的网络将与主网和测试网络完全隔离，因此你还需要配置一个矿工来处理交易，并为你挖矿创建新区块。</p>
+</blockquote>
+<h4 id="4-运行一个私有矿工"><a href="#4-运行一个私有矿工" class="headerlink" title="4. 运行一个私有矿工"></a>4. 运行一个私有矿工</h4><p>在以太坊主网上挖矿是一个复杂的任务，因为它只能使用<code>GPU</code>挖矿，需要一个启用<code>OpenCL</code>或者<code>CUDA</code>的<code>ethminer</code>实例。想要了解设置信息，请咨询<a href="https://www.reddit.com/r/EtherMining/" target="_blank" rel="noopener"><code>EtherMining subreddit</code></a>，以及<a href="https://github.com/Genoil/cpp-ethereum" target="_blank" rel="noopener"><code>Genoil miner</code></a>。</p>
+<p>但是在私有网络中，一个单核<code>CPU</code>矿工实例已经够用了，因为它可以在不需要大量资源的情况下以正确的时间间隔产生稳定的区块流（考虑单线程运行的情况，不需要用到多线程）。要启动一个挖矿的<code>geth</code>实例，请使用通常的标签运行它，并配上如下扩展：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ geth &lt;usual-flags&gt; --mine --minerthreads=1 --etherbase=0x0000000000000000000000000000000000000000</span><br></pre></td></tr></table></figure>
+
+<p>这将在一个单核CPU线程上开始挖矿，并将所有的过程记录在由<code>--etherbase</code>指定的账号上。你还可以将默认<code>gas limit</code>改为<code>--targetgaslimit</code>指定的值，并设置交易接受价格为<code>--gasprice</code>指定的值，以进一步调整挖矿。</p>
+<h4 id="5-实操"><a href="#5-实操" class="headerlink" title="5. 实操"></a>5. 实操</h4><h5 id="完成后布局"><a href="#完成后布局" class="headerlink" title="完成后布局"></a>完成后布局</h5><p>搭建完成后文件布局：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">$ tree -L 2 ./my-private-net</span><br><span class="line">.</span><br><span class="line">├── bootnode-dir</span><br><span class="line">│   └── boot.key</span><br><span class="line">├── datadir1</span><br><span class="line">│   ├── geth</span><br><span class="line">│   ├── geth.ipc</span><br><span class="line">│   └── keystore</span><br><span class="line">├── datadir2</span><br><span class="line">│   ├── geth</span><br><span class="line">│   ├── geth.ipc</span><br><span class="line">│   └── keystore</span><br><span class="line">└── genesis.json</span><br></pre></td></tr></table></figure>
+
+<h5 id="步骤"><a href="#步骤" class="headerlink" title="步骤"></a>步骤</h5><ol>
+<li><p>编写创世文件：<code>vim genesis.json</code></p>
+</li>
+<li><p>初始化2个节点：</p>
+ <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ geth init --datadir <span class="string">"./datadir1"</span> ./genesis.json</span><br><span class="line">$ geth init --datadir <span class="string">"./datadir2"</span> ./genesis.json</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>运行<code>bootnode</code>：</p>
+ <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> bootnode-dir</span><br><span class="line">$ bootnode --genkey=boot.key</span><br><span class="line">$ bootnode --nodekey=boot.key</span><br><span class="line">INFO [05-07|03:06:24] UDP listener up                          self=enode://0fd751b41c799962489a9b2b95c6a4815e67abc574fea7cd9208e34bd0092869ba1ba8e9877c246a23428d9e38fb2fba5fed00dabd3dd77644b5628082e9af0e@[::]:30301</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>开新窗口，运行节点1：</p>
+ <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ geth --datadir=./datadir1 --bootnodes=enode://0fd751b41c799962489a9b2b95c6a4815e67abc574fea7cd9208e34bd0092869ba1ba8e9877c246a23428d9e38fb2fba5fed00dabd3dd77644b5628082e9af0e@127.0.0.1:30301</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>再开新窗口，运行节点2，并作为矿工：</p>
+ <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ geth --datadir=./datadir2 --bootnodes=enode://0fd751b41c799962489a9b2b95c6a4815e67abc574fea7cd9208e34bd0092869ba1ba8e9877c246a23428d9e38fb2fba5fed00dabd3dd77644b5628082e9af0e@127.0.0.1:30301 --mine --minerthreads=1 --etherbase=0x26add576232dad627a9102015a7b11763e98f85b --port 30304</span><br></pre></td></tr></table></figure>
+
+
+</li>
+</ol>
+<h2 id="JavaScript后台交互"><a href="#JavaScript后台交互" class="headerlink" title="JavaScript后台交互"></a><code>JavaScript</code>后台交互</h2><p><code>Ethereum</code>实现了一个<code>JS</code>运行时环境（<code>JSRE</code>），可用于交互模式（命令行后台），和非交互模式（脚本）。其中<code>JS</code>后台支持全部的<a href="https://github.com/ethereum/wiki/wiki/JavaScript-API" target="_blank" rel="noopener"><code>web3 JavaScript Dapp API</code></a>和<a href="https://github.com/ethereum/go-ethereum/wiki/Management-APIs#admin" target="_blank" rel="noopener">admin API</a>。</p>
+<p><code>geth</code>就包含了一个<code>JavaScript</code>后台（一个接入<code>JSRE</code>的<code>REPL</code>(<code>Read, Evaluate &amp; Print Loop</code>)），可以通过<code>geth console</code>或者<code>geth attach</code>命令启动。<code>console</code>子命令会启动节点并打开后台，<code>attach</code>子命令不会启动节点，而只是尝试打开一个正在运行的<code>geth</code>实例的<code>js</code>后台。</p>
+<p><code>attach</code>会接受<code>endpoint</code>端点指定，以应对<code>geth</code>节点没有运行在默认的<code>ipc</code>端点上，或者仅仅是你想去连其他的<code>rpc</code>接口。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ geth --datadir=<span class="string">"./datadir1"</span>// 正常启动geth节点</span><br><span class="line">$ geth attach --datadir=<span class="string">"./datadir1"</span> //接入该节点的JS console</span><br></pre></td></tr></table></figure>
+
+<h2 id="在JS-console中转账ETH"><a href="#在JS-console中转账ETH" class="headerlink" title="在JS console中转账ETH"></a>在<code>JS console</code>中转账<code>ETH</code></h2><ol>
+<li><p>首先，需要<code>genesis.json</code>的<code>config.chainId</code>不为0，否则会导致转账中出现“余额不足”的错误。</p>
+</li>
+<li><p>进入后台： <code>geth attach --datadir=&quot;./datadir1&quot;</code></p>
+</li>
+<li><p>保证<code>eth.accounts</code>中有账号：可以将keystore文件放在<code>datadir1/keystore/</code>目录下，也可以提前使用<code>geth account new --datadir=&quot;./datadir1&quot;</code>创建账号。</p>
+</li>
+<li><p>解锁转账账号：<code>personal.unlockAcccount(eth.accounts[0])</code></p>
+</li>
+<li><p>转账:</p>
+ <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">eth.sendTransaction(&#123;<span class="attr">from</span>: eth.accounts[<span class="number">0</span>], <span class="attr">to</span>: eth.accounts[<span class="number">1</span>], <span class="attr">value</span>: eth.toWei(<span class="number">1</span>, <span class="string">"ether"</span>)&#125;)</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<h2 id="Nix"><a href="#Nix" class="headerlink" title="Nix"></a>Nix</h2><h3 id="关于Nix"><a href="#关于Nix" class="headerlink" title="关于Nix"></a>关于Nix</h3><p><code>Nix</code>是一个纯粹的函数式包管理工具，这意味着它对待包的方式，就像类似于<code>Haskell</code>这种纯函数式编程语言对待值一样 – 这些包由函数编译而成并且没有其它副作用。并且一旦编译完成不会再改变。<code>Nix</code>将包存储在<code>Nix store</code>中，一般都在<code>/nix/store</code>目录中，每一个包都有它自己独有的子目录，比如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/nix/store/b6gvzjyb2pg0kjfwrjmg1vfhh54ad73z-firefox-33.1/</span><br></pre></td></tr></table></figure>
+
+<p>其中<code>b6gvzjyb2pg0...</code>是这个包的唯一标识符，包含了它的一切依赖（是包编译依赖图的一个加密哈希值）。这种方式具有很多很强的特性。</p>
+<h3 id="快速开始"><a href="#快速开始" class="headerlink" title="快速开始"></a>快速开始</h3><p>这部分是为那些没有耐心读文档的人准备的。更多更深度的信息，你可以阅读<a href="https://nixos.org/nix/manual/#chap-quick-start" target="_blank" rel="noopener">后续的章节</a>。</p>
+<ol>
+<li><p>安装单用户<code>Nix</code></p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ curl https://nixos.org/nix/install | sh</span><br></pre></td></tr></table></figure>
+
+
+</li>
+</ol>
+<pre><code>这将会把`Nix`安装在`/nix`下。该安装脚本将会使用`sudo`权限创建`/nix`目录，所以确定一下你拥有足够的权限。（想看其它安装方式，查看[`Installation`](https://nixos.org/nix/manual/#chap-installation)）。</code></pre><ol start="2">
+<li><p>在<code>channel</code>中查看哪些安装包目前可用：</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ nix-env -qa</span><br><span class="line">docbook-xml-4.3</span><br><span class="line">docbook-xml-4.5</span><br><span class="line">firefox-33.0.2</span><br><span class="line">hello-2.9</span><br><span class="line">libxslt-1.1.28</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>从<code>channel</code>中安装一些包：</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ nix-env -i hello ...</span><br></pre></td></tr></table></figure>
+
+<p> 这会下载预先编译好的包；</p>
+</li>
+<li></li>
+</ol>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><p><a href="https://nixos.org/nix/manual/#chap-introduction" target="_blank" rel="noopener">https://nixos.org/nix/manual/#chap-introduction</a></p>
+</li>
+<li><p><a href="https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console" target="_blank" rel="noopener">https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console</a></p>
+</li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/12/20/Fabric-End-to-End流程/" rel="next" title="Fabric End-to-End流程">
+                <i class="fa fa-chevron-left"></i> Fabric End-to-End流程
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/04/09/Ethereum源码阅读笔记-accounts/" rel="prev" title="Ethereum源码阅读笔记-accounts">
+                Ethereum源码阅读笔记-accounts <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#运行geth"><span class="nav-number">1.</span> <span class="nav-text">运行geth</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#在Ethereum主网上运行全节点"><span class="nav-number">1.1.</span> <span class="nav-text">在Ethereum主网上运行全节点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#在Ethereum测试网络上运行全节点"><span class="nav-number">1.2.</span> <span class="nav-text">在Ethereum测试网络上运行全节点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#在Rinkeby测试网络上运行全节点"><span class="nav-number">1.3.</span> <span class="nav-text">在Rinkeby测试网络上运行全节点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#运营一个Ethereum私有网络"><span class="nav-number">1.4.</span> <span class="nav-text">运营一个Ethereum私有网络</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-定义私有的创世状态"><span class="nav-number">1.4.1.</span> <span class="nav-text">1. 定义私有的创世状态</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-创建集合点（rendezvous-point）"><span class="nav-number">1.4.2.</span> <span class="nav-text">2. 创建集合点（rendezvous point）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-启动成员节点"><span class="nav-number">1.4.3.</span> <span class="nav-text">3. 启动成员节点</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-运行一个私有矿工"><span class="nav-number">1.4.4.</span> <span class="nav-text">4. 运行一个私有矿工</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-实操"><span class="nav-number">1.4.5.</span> <span class="nav-text">5. 实操</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#完成后布局"><span class="nav-number">1.4.5.1.</span> <span class="nav-text">完成后布局</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#步骤"><span class="nav-number">1.4.5.2.</span> <span class="nav-text">步骤</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JavaScript后台交互"><span class="nav-number">2.</span> <span class="nav-text">JavaScript后台交互</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#在JS-console中转账ETH"><span class="nav-number">3.</span> <span class="nav-text">在JS console中转账ETH</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Nix"><span class="nav-number">4.</span> <span class="nav-text">Nix</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#关于Nix"><span class="nav-number">4.1.</span> <span class="nav-text">关于Nix</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#快速开始"><span class="nav-number">4.2.</span> <span class="nav-text">快速开始</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料"><span class="nav-number">5.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

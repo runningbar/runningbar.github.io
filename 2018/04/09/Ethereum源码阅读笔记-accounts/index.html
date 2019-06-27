@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  go-ethereum/accountsaccounts包实现了高层的以太坊账号管理模块 首先看accounts.go中的Account结构体：Account结构体描述了一个以太坊账号，可以定位到一个指定地址上，这个地址由结构体中的Account.URL字段定义，Account.URL字段是可选的。结构体中的另一个字段Account.Addre">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Ethereum源码阅读笔记-accounts">
+<meta property="og:url" content="http://www.huamo.online/2018/04/09/Ethereum源码阅读笔记-accounts/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  go-ethereum/accountsaccounts包实现了高层的以太坊账号管理模块 首先看accounts.go中的Account结构体：Account结构体描述了一个以太坊账号，可以定位到一个指定地址上，这个地址由结构体中的Account.URL字段定义，Account.URL字段是可选的。结构体中的另一个字段Account.Addre">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.966Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Ethereum源码阅读笔记-accounts">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  go-ethereum/accountsaccounts包实现了高层的以太坊账号管理模块 首先看accounts.go中的Account结构体：Account结构体描述了一个以太坊账号，可以定位到一个指定地址上，这个地址由结构体中的Account.URL字段定义，Account.URL字段是可选的。结构体中的另一个字段Account.Addre">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2018/04/09/Ethereum源码阅读笔记-accounts/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Ethereum源码阅读笔记-accounts | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2018/04/09/Ethereum源码阅读笔记-accounts/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Ethereum源码阅读笔记-accounts
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-04-09 10:58:15" itemprop="dateCreated datePublished" datetime="2018-04-09T10:58:15+08:00">2018-04-09</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/ethereum/" itemprop="url" rel="index"><span itemprop="name">ethereum</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h2 id="go-ethereum-accounts"><a href="#go-ethereum-accounts" class="headerlink" title="go-ethereum/accounts"></a><code>go-ethereum/accounts</code></h2><p><code>accounts</code>包实现了高层的以太坊账号管理模块</p>
+<p>首先看<code>accounts.go</code>中的<code>Account</code>结构体：<code>Account</code>结构体描述了一个以太坊账号，可以定位到一个指定地址上，这个地址由结构体中的<code>Account.URL</code>字段定义，<code>Account.URL</code>字段是可选的。结构体中的另一个字段<code>Account.Address</code>是必选的，该地址是由私钥衍生出来。<a id="more"></a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// accounts/accounts.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Account <span class="keyword">struct</span> &#123;</span><br><span class="line">	Address common.Address <span class="string">`json:"address"`</span> <span class="comment">// Ethereum account address derived from the key</span></span><br><span class="line">	URL     URL            <span class="string">`json:"url"`</span>     <span class="comment">// Optional resource locator within a backend</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接下来是<code>Wallet</code>接口：<code>Wallet</code>接口代表了一个可能包含一个或多个账号的软件或者硬件钱包。这些账号由同样的随机种子产生。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// account/accounts.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Wallet <span class="keyword">interface</span> &#123;</span><br><span class="line">	<span class="comment">// URL检索该钱包可达的规范路径，上层用它来定义来自多个后端的所有钱包的排序顺序。</span></span><br><span class="line">	URL() URL</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Status返回一个文本状态，用于帮助用户获悉目前的钱包状态。</span></span><br><span class="line">	<span class="comment">// 当钱包可能遇到任何故障的时候，它也会返回一个错误信息。</span></span><br><span class="line">	Status() (<span class="keyword">string</span>, error)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Open初始化对一个钱包实例的访问。</span></span><br><span class="line">	<span class="comment">// 这并不意味着解锁或解密账户密钥，而只是简单的建立与硬件钱包的一个连接，或是访问本源种子。</span></span><br><span class="line">	<span class="comment">// passphrase参数可能会，也可能不会被一个特定的钱包实现用到。</span></span><br><span class="line">	<span class="comment">// 不提供无密码Open方法的原因是为了努力实现统一的钱包处理，而忽略不同的后端提供商。</span></span><br><span class="line">	<span class="comment">// 请注意：如果你Open了一个钱包，你必须要Close它以释放各种已分配的资源（在使用硬件钱包时这一点尤为重要）。</span></span><br><span class="line">	Open(passphrase <span class="keyword">string</span>) error</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// Close释放一个已打开钱包实例持有的所有资源。</span></span><br><span class="line">	Close() error</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Accounts检索钱包当前所知的签名账户列表。</span></span><br><span class="line">	<span class="comment">// 对于分层确定性钱包(hierarchical deterministic wallet)，该列表不会是详尽全面的。</span></span><br><span class="line">	<span class="comment">// 而只是包含那些在账户导出过程中显式固定下来的账户。</span></span><br><span class="line">	Accounts() []Account</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Contains返回一个账户是否是这个特定钱包的一部分。</span></span><br><span class="line">	Contains(account Account) <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Derive（导出，派生）试图在指定的导出路径上显式的导出分层确定性账户。如果需要，导出的账户会被添加到该钱包的跟踪账户列表中。</span></span><br><span class="line">	Derive(path DerivationPath, pin <span class="keyword">bool</span>) (Account, error)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// SelfDerive设置一个基本账户导出路径，从中钱包尝试发现非零账户，并自动将他们加入到跟踪账户列表中。</span></span><br><span class="line">	<span class="comment">// 请注意，自导出会将指定路径的最后一个组成部分递增，而不是降为子路径，以允许发现从非零组件开始的账户。</span></span><br><span class="line">	<span class="comment">// 你可以用一个空的ChainStateReader调用SelfDerive来禁用自动账户发现功能。</span></span><br><span class="line">	SelfDerive(base DerivationPath, chain ethereum.ChainStateReader)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// SignHash请求钱包对指定的hash串签名。</span></span><br><span class="line">	<span class="comment">// 它仅通过给定账户中包含的地址来查找账户，或可选的借助于账户内嵌的URL字段中的任意位置元数据查找账户。</span></span><br><span class="line">	<span class="comment">// 如果钱包需要额外的身份验证来签名请求（例如：使用一个密码来解密账户，或者一个PIN码来验证交易），这时会返回一个AuthNeededError实例。</span></span><br><span class="line">	<span class="comment">// 这个AuthNeededError实例包含了一些信息告知用户需要哪些字段或操作。</span></span><br><span class="line">	<span class="comment">// 用户可以通过SignHashWithPassphrase，或者其他方式（比如：解锁keystore中的账户）来进行重试。</span></span><br><span class="line">	SignHash(account Account, hash []<span class="keyword">byte</span>) ([]<span class="keyword">byte</span>, error)</span><br><span class="line">	</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// SignTx请求钱包对给定的交易进行签名。</span></span><br><span class="line">	<span class="comment">// 它仅通过给定账户中包含的地址来查找账户，或可选的借助于账户内嵌的URL字段中的任意位置元数据查找账户。</span></span><br><span class="line">	<span class="comment">// 如果钱包需要额外的身份验证来签名请求（例如：使用一个密码来解密账户，或者一个PIN码来验证交易），这时会返回一个AuthNeededError实例。</span></span><br><span class="line">	<span class="comment">// 这个AuthNeededError实例包含了一些信息告知用户需要哪些字段或操作。</span></span><br><span class="line">	<span class="comment">// 用户可以通过SignTxWithPassphrase，或者其他方式（比如：解锁keystore中的账户）来进行重试。</span></span><br><span class="line">	SignTx(account Account, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// SignHashWithPassphrase请求钱包使用给定的passphrase作为额外的身份验证信息，来对给定的hash串签名。</span></span><br><span class="line">	<span class="comment">// 它仅通过给定账户中包含的地址来查找账户，或可选的借助于账户内嵌的URL字段中的任意位置元数据查找账户。</span></span><br><span class="line">	SignHashWithPassphrase(account Account, passphrase <span class="keyword">string</span>, hash []<span class="keyword">byte</span>) ([]<span class="keyword">byte</span>, error)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// SignTxWithPassphrase请求钱包使用给定的passphrase作为额外的身份验证信息，来对给定的交易签名。</span></span><br><span class="line">	<span class="comment">// 它仅通过给定账户中包含的地址来查找账户，或可选的借助于账户内嵌的URL字段中的任意位置元数据查找账户。</span></span><br><span class="line">	SignTxWithPassphrase(account Account, passphrase <span class="keyword">string</span>, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>accounts.go</code>中还有一个<code>Backend</code>接口，它是一个“钱包提供商”，可能包含一批可以签名交易并根据请求签名交易的账户。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// account/accounts.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Backend <span class="keyword">interface</span> &#123;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// Wallets可检索出后端目前知道的钱包列表。</span></span><br><span class="line">	<span class="comment">// 返回的钱包默认情况下不会打开。对于软件HD钱包，这意味着没有解密任何基础种子；对于硬件钱包，这意味着没有建立实际连接。</span></span><br><span class="line">	<span class="comment">// 所产生的钱包列表将根据其后端分配的内部URL按字母顺序排序。由于钱包（特别是硬件钱包）可能会来来去去，因此在随后的检索重试中，同一个钱包可能会出现列表中的不同位置。</span></span><br><span class="line">	Wallets() []Wallet</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Subscribe会创建一个异步订阅，当该后端检测到一个钱包到来或者离开的时候，将会收到通知。</span></span><br><span class="line">	Subscribe(sink <span class="keyword">chan</span>&lt;- WalletEvent) event.Subscription</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在<code>Backend.Subscribe()</code>中，订阅的事件类型为<code>WalletEvent</code>类型，下面来看看<code>WalletEvent</code>的定义，它是一个结构体，表示检测到钱包到来或离开时，由一个账户后端触发的事件。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// account/accounts.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> WalletEvent <span class="keyword">struct</span> &#123;</span><br><span class="line">	Wallet Wallet          <span class="comment">// 到来或者离开的钱包实例</span></span><br><span class="line">	Kind   WalletEventType <span class="comment">// 在系统中触发的事件类型</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中事件类型由<code>WalletEventType</code>类型表示，它本质上是一个<code>int</code>，只是为了区分不同的事件，以太坊共有3种钱包事件类型，分别为<strong>钱包到来</strong>，<strong>钱包打开</strong>，<strong>钱包离开</strong>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// account/accounts.go</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// WalletEventType代表了由钱包订阅子系统可以触发的不同事件类型。分为以下3种</span></span><br><span class="line"><span class="keyword">type</span> WalletEventType <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	<span class="comment">// WalletArrived在检测到一个新钱包时触发，通过USB插入，或者在keystore中通过一个文件系统事件通知到。</span></span><br><span class="line">	WalletArrived WalletEventType = <span class="literal">iota</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// WalletOpened当一个钱包被成功打开时触发，目的是为了启动后台进程，例如自动密钥派生。</span></span><br><span class="line">	WalletOpened</span><br><span class="line"></span><br><span class="line">	<span class="comment">// WalletDropped当一个钱包离开时触发。</span></span><br><span class="line">	WalletDropped</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/02/07/Ethereum初探/" rel="next" title="Ethereum初探">
+                <i class="fa fa-chevron-left"></i> Ethereum初探
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/04/11/Ethereum源码阅读笔记-whisper/" rel="prev" title="Ethereum源码阅读笔记-whisper">
+                Ethereum源码阅读笔记-whisper <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#go-ethereum-accounts"><span class="nav-number">1.</span> <span class="nav-text">go-ethereum/accounts</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

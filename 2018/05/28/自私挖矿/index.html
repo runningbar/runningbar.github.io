@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  背景这是康奈尔大学的一篇论文《Majority is not Enough: Bitcoin Mining is Vulnerable》，分析了简单多数原则在比特币挖矿中比较脆弱，分析指出并不需要51%算力才能实施有效攻击，而只需要1/3的算力就能够进行作恶。 在ethereum代码中，在写入块和数据库的过程中，有避免这一漏洞的处理，参考了这篇">
+<meta property="og:type" content="article">
+<meta property="og:title" content="自私挖矿">
+<meta property="og:url" content="http://www.huamo.online/2018/05/28/自私挖矿/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  背景这是康奈尔大学的一篇论文《Majority is not Enough: Bitcoin Mining is Vulnerable》，分析了简单多数原则在比特币挖矿中比较脆弱，分析指出并不需要51%算力才能实施有效攻击，而只需要1/3的算力就能够进行作恶。 在ethereum代码中，在写入块和数据库的过程中，有避免这一漏洞的处理，参考了这篇">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/selfish-mining-1.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/selfish-mining-2.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/selfish-mining-3.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/selfish-mining-4.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/selfish-mining-5.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/selfish-mining-6.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/selfish-mining-7.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/selfish-mining-8.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/selfish-mining-9.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/selfish-mining-10.png">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.974Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="自私挖矿">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  背景这是康奈尔大学的一篇论文《Majority is not Enough: Bitcoin Mining is Vulnerable》，分析了简单多数原则在比特币挖矿中比较脆弱，分析指出并不需要51%算力才能实施有效攻击，而只需要1/3的算力就能够进行作恶。 在ethereum代码中，在写入块和数据库的过程中，有避免这一漏洞的处理，参考了这篇">
+<meta name="twitter:image" content="http://www.huamo.online/source_code/image/selfish-mining-1.png">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2018/05/28/自私挖矿/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>自私挖矿 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2018/05/28/自私挖矿/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">自私挖矿
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-05-28 17:57:05" itemprop="dateCreated datePublished" datetime="2018-05-28T17:57:05+08:00">2018-05-28</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/ethereum/" itemprop="url" rel="index"><span itemprop="name">ethereum</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>这是康奈尔大学的一篇论文<a href="http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf" target="_blank" rel="noopener">《Majority is not Enough: Bitcoin Mining is Vulnerable》</a>，分析了简单多数原则在比特币挖矿中比较脆弱，分析指出并不需要51%算力才能实施有效攻击，而只需要1/3的算力就能够进行作恶。</p>
+<p>在<code>ethereum</code>代码中，在写入块和数据库的过程中，有避免这一漏洞的处理，参考了这篇论文，于是来详细看一看。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// core/blockchain.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(bc *BlockChain)</span> <span class="title">WriteBlockWithState</span><span class="params">(block *types.Block, receipts []*types.Receipt, state *state.StateDB)</span> <span class="params">(status WriteStatus, err error)</span></span> &#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<a id="more"></a>
+
+<h1 id="笔记"><a href="#笔记" class="headerlink" title="笔记"></a>笔记</h1><h2 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h2><p>传统观点认为比特币的挖矿协议是<a href="https://baike.baidu.com/item/%E6%BF%80%E5%8A%B1%E7%9B%B8%E5%AE%B9/2361065?fr=aladdin" target="_blank" rel="noopener">激励相容</a>的，并能够避免少数群体互相勾结。</p>
+<p>我们会阐明比特币挖矿协议不是激励相容的。本文会提出一种攻击：勾结的矿工会比正常挖矿获得更大的收益。这会导致正常的矿工们更愿意加入自私挖矿，勾结团体的规模会越来越大，直至成为大多数，至此，比特币系统将不再是一个去中心化的货币。</p>
+<p>除非做出一些假设，否则这种攻击是可行的，我们对比特币协议提出了一种可行的修改。它可以禁止算力少于全网1/4的矿池进行自私挖矿获利。这个门槛低于容错假设的1/2界限，但总比目前的事实下，任何规模的团体都可以危及系统要好。</p>
+<h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>比特币运行在$42 \times 10^{18}$的<a href="https://baike.baidu.com/item/Gflops" target="_blank" rel="noopener">FLOPS</a>环境中，矿工贡献的算力越大，它解题并获取收益的可能就越大。这种奖励结构促使矿工对整个系统贡献自己的算力，这也是去中心化的关键保障。</p>
+<p>比特币协议要求大多数矿工是诚实的，即遵循既定的协议，若矿工们相互勾结，开始掌握全网大多数的算力后，它们就可以主宰整个网络。因此，协议的关键设计是使矿工们没有动力去形成一个如此大规模的勾结团体。</p>
+<p>经验证据显示，比特币网络中的矿工都是策略性的建立矿池，因为挖矿奖励是以不频繁的随机间隔分配，所以矿工们搭建矿池来减少收入的差异率，在矿池中，每个成员贡献算力进行解题，然后根据贡献按比例分享奖励。</p>
+<p>确实，<strong>比特币协议对参与者是公平的，它严格按照矿工的挖矿能力在整体中所占的比例来分配奖励，即一个矿工在大型矿池中收益期望和在小型矿池中的收益期望是相等的。</strong>如果我们忽略矿池运营的固定开销，和规模上的潜在经济成本，矿工们相互勾结不断形成大矿池并没有任何优势，因此，由诚实的理性矿工搭建的矿池对系统是无害的。</p>
+<p>在本文中，我们证明传统观念是错误的：比特币挖矿协议不是激励相容的。<strong>我们将会描述一种策略，少数矿池可以以此获取比正常情况下更多的收入，即超过了它的算力在全网算力中的比例。</strong>这个策略的核心思想被称为自私挖矿，即一个矿池先自己持有它所挖到的区块，从而故意分叉。诚实节点继续在公共主链上挖矿，同时作恶矿池在自己的私有分支上挖矿。如果作恶矿池发现了更多的区块，它就比公共主链延展的更长，它会继续自己持有这些新区块。当公共主链分支在长度上接近作恶矿池的私有分支时，自私的矿工就会将持有的区块全部从私有分支暴露给公共主链。</p>
+<p>这种策略会导致那些遵循比特币协议的诚实矿工在解题中浪费资源，并且最终还是徒劳的。我们的分析表明，诚实的节点和自私的节点都浪费了一些资源，并且诚实矿工浪费的比例更多，而自私矿池的奖励超过了它在全网算力中的算力份额，这就赋予了它一种竞争优势，并会激励理性的矿工都加入到自私挖矿的矿池中。</p>
+<p>分析还表明，当超过一定的阈值大小后，一个自私矿池的收益将会随着矿池大小非线性上涨。一旦自私矿池到达这个阈值，理性矿工将会优先加入自私挖矿以获取更高收益。这个自私矿池就会快速的发展为大多数。一旦达到大多数阈值，它就可以切换到一个修改版的协议上，并忽略池外的区块，成为区块的唯一创建者收取所有的挖矿收入。或者保守秘密成为一个和善的垄断者，偶尔还会接受第三方的区块，以提供去中心化的幻象，同时保持充分的收益能力，以及在商业中发起双重支付的能力。无论哪种方式，去中心化的特性都会面临崩溃，而自私矿池的管理者将会掌管整个系统。</p>
+<p>分析还建模了自私阈值如何随着网络消息的传播速度变化而变化。研究表明，对于一个高连通性和对信息流良好控制的矿池，自私阈值接近于0。这意味着：如果不是100%的矿工都是诚实的，那么整个系统就不是激励相容的，第一个自私矿工的收入将比同样算力的诚实矿工获得更多收入，并且自私矿池的收益将会随着矿池大小非线性增长。</p>
+<p>我们会进一步指出，在一个自私矿池掌握了全网算力的1/3时，比特币挖矿协议将不再安全。<strong>这个矿池总是能够获得超比例收益，即使它输掉了每一次的相同长度区块竞争。</strong> 剩余的2/3算力必须遵循诚实协议，以保证作恶算力无法达到目前假设的50%阈值，才能够让游戏继续进行下去，但这在实际当中很难控制。最终，我们提出了对比特币协议的一个简单修改，可以将自私阈值从0升为1/4。这个修改是向后兼容且是渐进式的，即目前的客户端稍作修改即可适应这个新变化，且不需要所有客户端全部采纳，这非常方便，并且每一个客户端的采纳都会相应的提高这个自私阈值。</p>
+<h2 id="自私挖矿策略"><a href="#自私挖矿策略" class="headerlink" title="自私挖矿策略"></a>自私挖矿策略</h2><h3 id="建模矿工和矿池"><a href="#建模矿工和矿池" class="headerlink" title="建模矿工和矿池"></a>建模矿工和矿池</h3><p>系统有一系列的矿工构成，记为$1, \ldots, n$。每一个矿工$i$拥有算力 $m_{i}$ 。令</p>
+<p>$$\sum_{i=1}^{n}{m_{i}} = 1$$</p>
+<p>每一个矿工选择一条链的头部进行挖矿，那么它挖出后续块需要经过的时间间隔服从几何分布，且期望为$m_{i}^{-1}$。我们假设矿工都是理性的，即他总是尝试收益最大化，不排除他会偏离协议达到目的。</p>
+<p>一群矿工可以形成一个矿池，由一个集中协调者统一进行调度，矿池的算力是所有成员的算力之和，而收益根据成员的算力份额进行分配。一个矿池的期望相对收益，或者简称收益，就等价于在最长链上被这个矿池挖出来的区块的期望。</p>
+<h3 id="自私挖矿"><a href="#自私挖矿" class="headerlink" title="自私挖矿"></a>自私挖矿</h3><p>自私挖矿可以让一个足够算力的矿池获取超额收益。简单起见，我们假设矿工分为两派：一个勾结在一起遵循自私挖矿策略的少数派矿池，一个遵循诚实挖矿策略的多数派。诚实的矿工是统一行动，还是分组行动，甚至是单独行动都是无关紧要的。</p>
+<p><strong>自私挖矿算法伪代码</strong></p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">on Init</span><br><span class="line">	public chain ← publicly known blocks</span><br><span class="line">	private chain ← publicly known blocks</span><br><span class="line">	privateBranchLen ← <span class="number">0</span></span><br><span class="line">	Mine at the head <span class="keyword">of</span> the private chain.</span><br><span class="line"></span><br><span class="line">on My pool found a block <span class="comment">//(selfish mining pool)</span></span><br><span class="line">	∆prev ← length(private chain) − length(public chain)</span><br><span class="line">	append <span class="keyword">new</span> block to private chain</span><br><span class="line">	privateBranchLen ← privateBranchLen + <span class="number">1</span></span><br><span class="line">	<span class="keyword">if</span> ∆prev = <span class="number">0</span> and privateBranchLen = <span class="number">2</span> then <span class="comment">//(Was tie with branch of 1)</span></span><br><span class="line">		publish all <span class="keyword">of</span> the private chain <span class="comment">//(Pool wins due to the lead of 1)</span></span><br><span class="line">		privateBranchLen ← <span class="number">0</span></span><br><span class="line">	Mine at the <span class="keyword">new</span> head <span class="keyword">of</span> the private chain.</span><br><span class="line"></span><br><span class="line">on Others found a block</span><br><span class="line">	∆prev ← length(private chain) − length(public chain)</span><br><span class="line">	append <span class="keyword">new</span> block to public chain</span><br><span class="line">	<span class="keyword">if</span> ∆prev = <span class="number">0</span> then</span><br><span class="line">		private chain ← public chain <span class="comment">//(they win)</span></span><br><span class="line">		privateBranchLen ← <span class="number">0</span></span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> ∆prev = <span class="number">1</span> then</span><br><span class="line">		publish last block <span class="keyword">of</span> the private chain <span class="comment">//(Now same length. Try our luck)</span></span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> ∆prev = <span class="number">2</span> then</span><br><span class="line">		publish all <span class="keyword">of</span> the private chain <span class="comment">//(Pool wins due to the lead of 1)</span></span><br><span class="line">		privateBranchLen ← <span class="number">0</span></span><br><span class="line">	<span class="keyword">else</span> <span class="comment">//(∆prev &gt; 2)</span></span><br><span class="line">		publish first unpublished block <span class="keyword">in</span> private block.</span><br><span class="line">	Mine at the head <span class="keyword">of</span> the private chain.</span><br></pre></td></tr></table></figure>
+
+<p><strong>自私挖矿的核心思想就是迫使诚实矿工在陈旧的公共主链上执行无意义的计算。甚至说，迫使那些诚实的矿工花费了他们的时间去挖块，但这些区块注定不会成为主链的一部分。</strong></p>
+<p>为了达到这一目的，自私的矿工选择性的广播他们挖到的区块使诚实矿工的劳动无效。大概来说，自私矿池自己持有挖到的区块，并秘密创建分支。而与此同时，诚实矿工继续在短的公共主链上进行挖矿。由于自私矿工的算力处于少数，它的秘密分支长度不会无限制的领先公共主链。因此，自私矿池会策略性的从秘密分支向公共主链广播区块，导致诚实的矿工放弃较短的公共主链，而切换到最近收到的新区块上挖矿。这使他们之前花在较短主链上的努力无效，并且由于自己的一部分区块纳入了主链，自私矿池获取了超算力份额的收益。</p>
+<p>由于算力的差异，自私矿池挖出新块赶超主链的几率很小，因此，只要秘密分支落后于公共主链，自私矿池都简单的采用公共主链作为新的秘密分支。</p>
+<p>当自私矿池找到一个新区块时，它就处于了优势地位，领先于公共主链一个区块的长度。这个时候，它并不是简单的发布这个新区块，而是自己持有。这样就会面临2种结果：</p>
+<ol>
+<li><p>诚实矿工在公共主链上发现了新区块，这就取消掉了自私矿池的优势。</p>
+</li>
+<li><p>自私矿池又挖出了一个新区块，延续了它的领导地位。</p>
+</li>
+</ol>
+<p>如果是第1种结果，自私矿池会立即发布它的新区块，这会产生一个纠纷定夺哪一条分支获胜。其中自私的矿工会一致采纳并且延展自己的秘密分支，而诚实的矿工会根据消息的传播速度选择在哪个分支上挖矿。</p>
+<ul>
+<li><p>如果自私矿池早于那些没有采纳秘密分支的诚实矿工挖出了一个后续块，它就会立即发布这个后续块，并享用第一个块和这个后续块的奖励。</p>
+</li>
+<li><p>如果采纳了秘密分支的诚实矿工挖出了一个后续块，那么自私矿池就享用第一个块的奖励，</p>
+</li>
+<li><p>而若采纳公共主链的诚实矿工挖出了一个后续块，则自私矿池这一轮得不到任何收益。</p>
+</li>
+</ul>
+<p>如果是第2种结果，自私矿池连续找到了2个新区块，它的领先地位得到巩固，并能够有效抵抗诚实矿工的竞争。一旦达到这一点，它会继续在秘密分支上挖矿。当诚实矿工每发现一个区块的时候，它也会立即公布一个区块，这就进入了上面的3种情况中。这里我们讨论随后的情况，由于自私矿池的算力占少数，它的这种领先地位有很大概率会最终削减到只有一个区块。此时，自私矿池就发布自己的秘密分支。因为这个秘密分支比公共主链长一个区块，那么所有的矿工都会采纳这条分支，自私矿池就会享受它挖出的区块的所有奖励。此时系统又回到了一致状态，直到自私矿池再一次分叉它。</p>
+<h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><p>现在我们分析一个系统的期望奖励，其中自私矿池的算力为$\alpha$，其它人算力为$(1 - \alpha)$。</p>
+<p><img src="/source_code/image/selfish-mining-1.png" alt></p>
+<p>图一用一个状态机展示了系统的运行。系统状态代表了自私矿池的领先优势。即秘密分支中未发布的区块数量和公共主链长度之差。0优势被分成了状态0和状态$0’$。状态0表示目前无分叉，只有一条全局的公共最长主链。状态$0’$表示目前有2个长度为1的公共分支：诚实矿工挖出的主链分支，自私矿工的秘密分支（这个是不公开的），还有自私矿工发布出来匹配主链的分支。图中的状态过渡均由挖矿事件触发。回想一下这些事件的发生分别服从于平均频率为$\alpha$和$(1-\alpha)$的指数分布。</p>
+<p>当自私矿池的秘密分支长度为1，诚实矿工挖出来一个区块，自私矿池会立马发布它的秘密分支，这就出现了2条长度为1的公共分支。自私矿池的矿工继续在秘密分支上挖矿，因为只要这个分支挖出了后续块，自私矿池就会收到奖励。诚实矿工按照标准比特币协议的实现，会在它收到的第一个分支上挖矿。我们将诚实矿工选择在自私分支上挖矿的比例记为$\gamma$，而选择在诚实分支上挖矿的比例就是$(1 - \gamma)$。</p>
+<p>对于状态$s = 0, 1, 2, \ldots$，伴随概率$\alpha$，自私矿池挖出一个区块，并将领先优势依次递增至$s + 1$。对于状态$s = 3, 4, \ldots$，伴随概率$(1-\alpha)$，诚实矿工挖出一个区块并将优势依次递减为$s-1$。如果优势为2并且诚实矿工挖出区块时，自私矿池会一次性发布它的秘密分支，然后整个系统回到0状态。如果优势为1并且诚实矿工挖出区块时，状态就回到了上面说的状态$0’$，在状态$0’$上，有3种可能过渡回到状态0，这3种可能的概率之和为1：</p>
+<ol>
+<li><p>自私矿池在自己的秘密分支上挖出后续块，概率为$\alpha$</p>
+</li>
+<li><p>诚实矿工在秘密分支上挖出后续块，概率为$\gamma(1-\alpha)$</p>
+</li>
+<li><p>诚实矿工在诚实分支上挖出后续块，概率为$(1-\gamma)(1-\alpha)$</p>
+</li>
+</ol>
+<h3 id="状态概率"><a href="#状态概率" class="headerlink" title="状态概率"></a>状态概率</h3><p>我们分析这个状态机来计算它的概率分布状态空间，得到如下等式：</p>
+<p>$$<br>\left {<br>\begin{array}{l}<br>\alpha p_0 = (1-\alpha)p_1 + (1-\alpha)p_2 \<br>p_{0’} = (1-\alpha)p_1 \<br>\alpha p_1 = (1-\alpha)p_2 \<br>\forall k \geq 2: \alpha p_k = (1-\alpha)p_{k+1} \<br>\sum_{k=0}^{\infty}{p_k} + p_{0’} = 1<br>\end{array}<br>\right.<br>\tag{1}<br>$$</p>
+<p>解方程组(1)，可得：</p>
+<p>$$<br>\begin{align}<br>&amp; p_0 = \frac{\alpha - 2\alpha^2}{\alpha(2\alpha^3-4\alpha^2+1)} \tag{2} \<br>&amp; p_{0’} = \frac{(1-\alpha)(\alpha-2\alpha^2)}{1-4\alpha^2+2\alpha^3} \tag{3} \<br>&amp; p_1 = \frac{\alpha-2\alpha^2}{2\alpha^3-4\alpha^2+1} \tag{4} \<br>&amp; \forall k \geq 2: p_k = \left( \frac{\alpha}{1-\alpha} \right)^{k-1} \frac{\alpha-2\alpha^2}{2\alpha^3-4\alpha^2+1} \tag{5}<br>\end{align}<br>$$</p>
+<h3 id="收益分析"><a href="#收益分析" class="headerlink" title="收益分析"></a>收益分析</h3><p>只有当区块纳入了主链后，挖掘这个区块的矿工才会拿到收益，根据上面的概率分布方程，我们详述每个事件的收益情况。</p>
+<ol>
+<li><p>除了2个长度为1的分支外的其它状态下，自私矿池挖出一个区块。它会将这个区块追加到秘密分支上，这个区块的收益会被延迟决定。</p>
+<p> <img src="/source_code/image/selfish-mining-2.png" alt></p>
+</li>
+<li><p>在两个长度为1的分支状态下，自私矿池挖出一个区块。它会发布这个长度为2的秘密分支，这样就拿到了2个区块的收益。</p>
+<p> <img src="/source_code/image/selfish-mining-3.png" alt></p>
+</li>
+<li><p>在两个长度为1的分支状态下，诚实矿工在秘密分支上挖出了一个区块。此时自私矿池拿到第1个块的奖励，第2个块的奖励归挖掘它的诚实矿工所有。</p>
+<p> <img src="/source_code/image/selfish-mining-4.png" alt></p>
+</li>
+<li><p>在2个长度为1的分支状态下，诚实矿工在诚实分支上挖出了一个区块。2个区块奖励都被挖掘出它们的诚实矿工获取，自私矿池拿不到任何奖励。</p>
+<p> <img src="/source_code/image/selfish-mining-5.png" alt></p>
+</li>
+<li><p>没有秘密分支的状态下，诚实矿工挖出一个区块。挖掘者获得奖励，双方阵营都切换到这个新区块上挖矿。</p>
+</li>
+<li><p>领先优势为1的状态下，诚实矿工挖到1个区块。此时产生了2个长度为1的分支，自私矿池会立即发布曾经领先的那个区块，诚实矿工选择诚实分支继续挖矿的比例记为$\gamma$（这个和上文的记法恰好相反）。这种情况下的区块奖励也是处于暂定。</p>
+<p> <img src="/source_code/image/selfish-mining-6.png" alt></p>
+</li>
+<li><p>领先优势为2个状态下，诚实矿工挖到1个区块。此时领先优势降为1，诚实矿工马上就赶上来了，所以自私矿池会发布它的秘密分支所有区块，因为它更长，所以所有人都会接纳这个秘密分支，于是自私矿池获取2个区块的收益。</p>
+<p> <img src="/source_code/image/selfish-mining-7.png" alt></p>
+</li>
+<li><p>领先优势大于2的状态下，诚实矿工挖到1个区块。这会削减领先优势，但优势仍大于2（如果等于2，就进入第7种情况了）。一旦自私矿池公布整个秘密分支，那么诚实矿工挖到的新区块（记为编号$i$）就会排挤在主链之外。然而，自私矿池只公布同样编号为$i$的区块，并一个一个的拿奖励。</p>
+<p> <img src="/source_code/image/selfish-mining-8.png" alt></p>
+</li>
+</ol>
+<p>我们从状态概率和转换概率上算出自私矿池和诚实矿工的收益如下：</p>
+<p>$$<br>\begin{align}<br>&amp; r_{others} = \overbrace{p_{0’} \cdot \gamma(1-\alpha) \cdot 1}^{Case (3)} + \overbrace{p_{0’} \cdot (1-\gamma)(1-\alpha)\cdot2}^{Case(4)} + \overbrace{p_{0} \cdot (1-\alpha) \cdot 1}^{Case(5)} \tag{6} \<br>&amp; r_{pool} = \overbrace{p_{0’} \cdot \alpha \cdot 2}^{Case (2)} + \overbrace{p_{0’} \cdot \gamma(1-\alpha) \cdot 1}^{Case(3)} + \overbrace{p_{2} \cdot (1-\alpha) \cdot 2}^{Case(7)} + \overbrace{P<a href="1-\alpha">i &gt; 2</a> \cdot 1}^{Case (8)}\tag{7} \<br>\end{align}<br>$$</p>
+<p>如预期所示，自私挖矿带来的故意分叉会浪费掉诚实矿工的部分工作。转而导致整个区块的生成速度下降，即</p>
+<p>$$r_{pool} + r_{others} &lt; 1$$</p>
+<p>于是协议会自动调整难度以保证主链平均每10分钟产出一个区块。每个矿工实际的收益效率记做<strong>收益率比例，它等价于矿工挖出的区块在主链中所有区块的比例</strong>。将(2)-(5)式代入(6)-(7)式中，在$0 \leq \alpha \leq \frac{1}{2}$时，解得自私矿池的收益比例为：</p>
+<p>$$<br>R_{pool} = \frac{r_{pool}}{r_{pool} + r_{others}} = \cdots = \frac{\alpha(1-\alpha)^{2}(4\alpha + \gamma(1-2\alpha)) - \alpha^{3}}{1-\alpha(1+(2-\alpha)\alpha)} \tag{8}<br>$$</p>
+<h3 id="模拟"><a href="#模拟" class="headerlink" title="模拟"></a>模拟</h3><p>为了验证分析，康奈尔大学的研究小组将结果和一个比特币协议模拟器进行了对比。这个模拟器很有意思，实现了大部分的比特币挖矿协议细节，但把计算解密问题换成了蒙特卡罗模拟，来模拟区块发现，而不需要真正的耗费大量计算资源。在这个实验中，模拟了1000个矿工以相同的速度挖矿。其中$1000\alpha$的矿工组成一个矿池运行自私挖矿算法，其它矿工遵循比特币协议。并假设区块传播时间相对于挖掘时间可以忽略不计，这个和现实情况一致。为了避免出现两条同样长度的主链，人为的设置了分歧时的$\gamma$值，即当自私矿池发布秘密分支时，有$\gamma(1-\alpha)1000$个诚实矿工会选择在秘密分支上挖矿，剩余的则在诚实分支上挖矿。图2显示模拟结果与理论分析相符（不是相符，是完全一致，OMG！）。</p>
+<p><img src="/source_code/image/selfish-mining-9.png" alt></p>
+<h3 id="alpha-和-gamma-的影响"><a href="#alpha-和-gamma-的影响" class="headerlink" title="$\alpha$和$\gamma$的影响"></a>$\alpha$和$\gamma$的影响</h3><p>从上图可以看到，当$\alpha$越大，自私矿池获取到的超算力份额收益就越大，但要记得(8)式成立的前提是$0 \leq \alpha \leq \frac{1}{2}$，我们通过如下观察分析这个不等式并叙述结果：</p>
+<p><strong>观察1</strong> 对于给定的$\gamma$，一个矿池获取到超份额收益的区间为：</p>
+<p>$$<br>\frac{1-\gamma}{3-2\gamma} &lt; \alpha &lt; \frac{1}{2} \tag {9}<br>$$</p>
+<p>我们用图2对此进行说明。首先需要说明的是，纵观整个分析过程，我们发现自私矿池只有1个区块优势的时候才会有风险，此时诚实矿工可能挖到区块并与其竞争。当$\gamma = 1$时，图中蓝色线所示，所有的诚实矿工在竞争时都会选择在秘密分支上挖矿，等于都在为自私矿池抬轿子，所以在这种情况下，自私矿池一点风险都没有了，它总能得到超份额收益，无关算力大小，所以此时自私阈值（即$\alpha$）为0；当$\gamma = 0$时，这是另一种极端，此时，自私阈值为1/3，只有超过这个算力比例，自私矿池才能获得超份额收益。当$\gamma = 1/2$时，自私阈值为1/4。图3列出了自私阈值和$\gamma$的函数关系。</p>
+<p><img src="/source_code/image/selfish-mining-10.png" alt></p>
+<p>观察图2，我们还注意到自私矿池收益函数的斜率，即 $$R_{pool}$$ 是一个关于自私矿池算力的函数，并且在超过自私阈值后。$R_{pool}$会越来越大，从图中也可以看到曲线越来越陡峭。这就得到了下面第2个观察。</p>
+<p><strong>观察2</strong> 对于运行自私挖矿的矿池，在超越自私阈值后，矿池中每个成员的收益都会随着矿池算力的增加而增加。</p>
+<h2 id="矿池的形成"><a href="#矿池的形成" class="headerlink" title="矿池的形成"></a>矿池的形成</h2><p>研究已经表明，一旦自私矿池超过了自私阈值算力，它就能够通过自私挖矿增加收入（参照观察1），并且，理性的矿工也会倾向于加入这个矿池增加收入，而矿池也会欢迎新成员的加入（参照观察2）。于是，自私矿池的算力会越来越大，变成大多数。一旦一个矿池，无论自私与否，掌握了大多数算力，它就可以控制整个区块链。自私挖矿算力这时就变得没有必要，因为它能够做的事情已不仅限于获取收益了，这个时候，比特币就不再是最初设想的去中心化货币。</p>
+<h2 id="加固比特币协议"><a href="#加固比特币协议" class="headerlink" title="加固比特币协议"></a>加固比特币协议</h2><p>理想情况下，一个强大的货币体系应该被设计为能够抵抗各种攻击。由于自私挖矿攻击在超越自私阈值后能够得到超额收入，应该修改协议把这个自私阈值设的越高越好。但是目前的比特币协议并没有保证$\gamma$最小值的措施。这就意味着自私阈值可能会低至0，那么任何算力的矿池都能够自私挖矿获取超额收益。我们建议比特币协议做一个简单修改，将$\gamma$设为1/2，如果所有的诚实矿工都采纳这种修改，那么自私阈值可以升至1/4。这个修改是向后兼容的，任何矿工都可以采纳它，并且不妨碍协议的运行。并且，它是逐步演化的，即只要采纳它的矿工降低$\gamma$值，都会升高自私阈值。</p>
+<h3 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h3><p>比特币协议规定，当矿工知道多个相同长度的分支时，它总是选择在第一个接受到分支上挖矿。当自私矿池领先优势为1时，一旦它监听到诚实矿工挖出了新区块<code>X</code>，它就立即发布自己的秘密区块<code>P</code>。乍一看，自私矿池总是监听后才发布，处于滞后劣势。但是一个精明的自私矿池可以对诚实矿工发动<a href="https://blog.csdn.net/qq_35056292/article/details/60480292" target="_blank" rel="noopener">女巫攻击</a>。它会在比特币挖矿网络中增加一定数量的零算力矿工，这些虚拟矿工可以看成是参与数据传播的高级媒介，但并不挖掘区块。当它们监听到区块<code>X</code>，它们就忽略掉这个区块，并开始广播区块<code>P</code>，虽然P2P网络最终会保证区块<code>X</code>可以广播给所有矿工，但是在这种情况下，区块<code>X</code>的传播速度一定比区块<code>P</code>的传播速度慢。零算力矿工的数量足够大时，这种精明操作就可以增加$\gamma$值，结果就是如公式(9)那样，自私阈值趋于于0。</p>
+<h3 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h3><p>我们提出一种简单的，向后兼容的协议更改方案来提高自私阈值。具体来说，当一个矿工收到同样长度的分支时，它应该把它们都广播出去，并且随机选择在哪个分支上挖矿。在两个分支的情况下，期望有一半的矿工在A分支，另一半的矿工在B分支，这就会使$\gamma = 1/2$，并转而将自私阈值升为1/4。</p>
+<p>每一个矿工实现我们的更改，都会降低自私矿池掌控信息传播提升$\gamma$的能力。这种修改是独立的并不会影响其它矿工，因此也不需要因分叉。也没有对协议引入新的漏洞：目前，如果出现两个同样长度的分支，每个矿工的选择是随意的，主要依赖于网络拓扑和延时。我们的修改只是明确化了这种随机性，因此不会引入新的漏洞。</p>
+<h1 id="再看以太坊代码"><a href="#再看以太坊代码" class="headerlink" title="再看以太坊代码"></a>再看以太坊代码</h1><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// core/blockchain.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> !reorg &amp;&amp; externTd.Cmp(localTd) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// Split same-difficulty blocks by number, then at random</span></span><br><span class="line">		reorg = block.NumberU64() &lt; currentBlock.NumberU64() || (block.NumberU64() == currentBlock.NumberU64() &amp;&amp; mrand.Float64() &lt; <span class="number">0.5</span>)</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<p>所以这句话就是为了在同样难度的区块上，随机选择一个进行挖矿，降低$\gamma$，提升自私阈值$\alpha$。</p>
+<h1 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h1><ul>
+<li><p><a href="http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf" target="_blank" rel="noopener">http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf</a></p>
+</li>
+<li><p><a href="https://baike.baidu.com/item/%E6%BF%80%E5%8A%B1%E7%9B%B8%E5%AE%B9/2361065?fr=aladdin" target="_blank" rel="noopener">https://baike.baidu.com/item/%E6%BF%80%E5%8A%B1%E7%9B%B8%E5%AE%B9/2361065?fr=aladdin</a></p>
+</li>
+<li><p><a href="https://baike.baidu.com/item/Gflops" target="_blank" rel="noopener">https://baike.baidu.com/item/Gflops</a></p>
+</li>
+<li><p><a href="https://blog.csdn.net/qq_35056292/article/details/60480292" target="_blank" rel="noopener">https://blog.csdn.net/qq_35056292/article/details/60480292</a></p>
+</li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/05/24/Ethereum转账流程剖析/" rel="next" title="Ethereum转账流程剖析">
+                <i class="fa fa-chevron-left"></i> Ethereum转账流程剖析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/06/01/共识算法-Raft共识算法/" rel="prev" title="共识算法-Raft共识算法">
+                共识算法-Raft共识算法 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#背景"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#笔记"><span class="nav-number">2.</span> <span class="nav-text">笔记</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#引言"><span class="nav-number">2.1.</span> <span class="nav-text">引言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#介绍"><span class="nav-number">2.2.</span> <span class="nav-text">介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#自私挖矿策略"><span class="nav-number">2.3.</span> <span class="nav-text">自私挖矿策略</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#建模矿工和矿池"><span class="nav-number">2.3.1.</span> <span class="nav-text">建模矿工和矿池</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#自私挖矿"><span class="nav-number">2.3.2.</span> <span class="nav-text">自私挖矿</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分析"><span class="nav-number">2.4.</span> <span class="nav-text">分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#状态概率"><span class="nav-number">2.4.1.</span> <span class="nav-text">状态概率</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#收益分析"><span class="nav-number">2.4.2.</span> <span class="nav-text">收益分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#模拟"><span class="nav-number">2.4.3.</span> <span class="nav-text">模拟</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#alpha-和-gamma-的影响"><span class="nav-number">2.4.4.</span> <span class="nav-text">$\alpha$和$\gamma$的影响</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#矿池的形成"><span class="nav-number">2.5.</span> <span class="nav-text">矿池的形成</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#加固比特币协议"><span class="nav-number">2.6.</span> <span class="nav-text">加固比特币协议</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#问题"><span class="nav-number">2.6.1.</span> <span class="nav-text">问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#解决方案"><span class="nav-number">2.6.2.</span> <span class="nav-text">解决方案</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#再看以太坊代码"><span class="nav-number">3.</span> <span class="nav-text">再看以太坊代码</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考资料"><span class="nav-number">4.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  背景当用Git久了，难免会手误或临时添加一些大文件到仓库中，即使以后添加进了.gitignore，甚至做了git rm，但是Git为了保证版本可回退，history pack里面依然会存储这些对象，这个时候我们就要为Git仓库进行瘦身。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="为Git仓库瘦身">
+<meta property="og:url" content="http://www.huamo.online/2017/11/22/为Git仓库瘦身/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  背景当用Git久了，难免会手误或临时添加一些大文件到仓库中，即使以后添加进了.gitignore，甚至做了git rm，但是Git为了保证版本可回退，history pack里面依然会存储这些对象，这个时候我们就要为Git仓库进行瘦身。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.972Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="为Git仓库瘦身">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  背景当用Git久了，难免会手误或临时添加一些大文件到仓库中，即使以后添加进了.gitignore，甚至做了git rm，但是Git为了保证版本可回退，history pack里面依然会存储这些对象，这个时候我们就要为Git仓库进行瘦身。">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2017/11/22/为Git仓库瘦身/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>为Git仓库瘦身 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2017/11/22/为Git仓库瘦身/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">为Git仓库瘦身
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2017-11-22 13:12:40" itemprop="dateCreated datePublished" datetime="2017-11-22T13:12:40+08:00">2017-11-22</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/git/" itemprop="url" rel="index"><span itemprop="name">git</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>当用Git久了，难免会手误或临时添加一些大文件到仓库中，即使以后添加进了<code>.gitignore</code>，甚至做了<code>git rm</code>，但是Git为了保证版本可回退，<code>history pack</code>里面依然会存储这些对象，这个时候我们就要为Git仓库进行瘦身。<a id="more"></a></p>
+<p>或者不是大文件的情况，有时我们需要删除掉一些敏感信息文件，比如<code>password.txt</code>，即使回退也无法找到敏感文件，要实现这个要求，也要对<code>history pack</code>进行清理。</p>
+<p>清理主要做如下一些事情：</p>
+<ol>
+<li>寻找想要彻底清理的文件路径</li>
+<li>查询这个文件第一次出现的提交</li>
+<li>从第一次出现的提交开始清理，重写之后的所有提交，保证该文件在<code>history</code>中完全抹除</li>
+<li>清理掉相关的引用，以及log信息</li>
+<li>重新打包所有对象</li>
+<li>推送至远程仓库以应用更新</li>
+</ol>
+<p>所以做完了清理之后，既能够保证Git还可以正常回溯，分支，tag，历史变更这些都还保留；又能够完全清理掉指定的文件。</p>
+<h3 id="操作思路"><a href="#操作思路" class="headerlink" title="操作思路"></a>操作思路</h3><p>下面有2种途径达到目的</p>
+<ol>
+<li><p>可以使用<code>BFG</code>工具，操作简单，链接为：<a href="https://rtyley.github.io/bfg-repo-cleaner/" target="_blank" rel="noopener">https://rtyley.github.io/bfg-repo-cleaner/</a></p>
+</li>
+<li><p>如果喜欢自己倒腾，可以使用原生git命令组合实现，主要用到<code>git filter-branch</code>，其实<code>BFG</code>也是对该命令的封装</p>
+</li>
+</ol>
+<h3 id="详细步骤"><a href="#详细步骤" class="headerlink" title="详细步骤"></a>详细步骤</h3><p>以第2种途径来达成目的，亲测可用，场景为 <strong>我在几个月前推送了一批镜像文件到仓库中，虽然<code>git rm</code>移除了，但history pack中依然保留了数据</strong> 。汗…</p>
+<p>以下步骤均在<strong>工程根目录</strong>下操作</p>
+<ol>
+<li><p><strong>寻找大文件是哪些</strong></p>
+<p> 镜像已经移除掉了，我需要寻找到它们曾经在哪里。以下命令罗列出整个仓库中前10个最大文件对象。该命令运行需要等待一段时间</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ git verify-pack -v .git/objects/pack/pack-43035f03d78ed39da647d4685e427bd126209bdb.idx | sort -k 3 -n | tail -10</span><br><span class="line"></span><br><span class="line">e28b267b24de7d5b32ed2391669df8a72e24257d blob   162449408 62757122 757958127</span><br><span class="line">c32c8b1da1c6283b250402aa31cde35051a52b3d blob   177733120 59785053 1360726301</span><br><span class="line">711c9b581771981c54b4637497ceeb4bb23012bd blob   188976128 70107988 2347396900</span><br><span class="line">d5cb26ac04328a255e922a24ea271ee50901c59d blob   196414976 74351707 1500585499</span><br><span class="line">f93b48272597886796fc03d54e281f2403bea5ed blob   199080448 44716221 1455869278</span><br><span class="line">247b35b36ef4c9f980c8cf967712788539980e5d blob   244180480 88897974 820715249</span><br><span class="line">71848a6b5cb31639f8770553ddf6222573755d3d blob   414519296 140712921 100780869</span><br><span class="line">d69f7af4727d15ee563aead6eff1d8baff61105d blob   1295518720 427812890 330145237</span><br><span class="line">a3a36f25a9c3d610cb4d4eea381314ecf7b1510d blob   1324011520 443360428 909613223</span><br><span class="line">c32670dfb49ae6a5948517fb6d19f78812a840ad blob   1802148352 617108853 1730288047</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>查找对应路径</strong></p>
+<p> 发现<code>e28b267b24de7d5b32ed2391669</code>开头的对象最大，我们来看看它指代了哪个路径</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ git rev-list --objects --all | grep e28b267b24de7d5b32ed2391669</span><br><span class="line"></span><br><span class="line">e28b267b24de7d5b32ed2391669df8a72e24257d backEnd/vendor/history/dockerimages/fabric-baseos</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>查找第一次出现该文件的log</strong></p>
+<p> 从上个命令找到了大文件的曾经存在过的路径，现在查找log看看第一次提交该文件的版本号，结果列表里面最下面一个即为第一次，例如下面的<code>722113f8a88</code>。其实这一步不是必须的，因为清理可以从头清理到尾，全面覆盖。</p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ git log --pretty=oneline --branches -- backEnd/vendor/history/dockerimages/fabric-baseos</span><br><span class="line"></span><br><span class="line">486eac3085e25e9cec8c2de35c1e09cf79a5134e update </span><br><span class="line">5fb74121be3fe311428068dd02837406a5d8f173 update </span><br><span class="line">1380ead7f038a4b23add4fd64e9b66cb678cd6b5 commit something</span><br><span class="line">a49db09fb148aabf51223d73fbcdb71e103610a0 update</span><br><span class="line">722113f8a88e03cafebe7bbfcb6de20ffb068387 push</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>开始清理history</strong></p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ git filter-branch --force --index-filter &apos;git rm --cached --ignore-unmatch backEnd/vendor/ILIOS/dockerimages/fabric-baseos&apos; --prune-empty --tag-name-filter cat -- --all</span><br><span class="line"></span><br><span class="line">Rewrite 6aeecaec3cfb419313bfb5516048b0979a6f284f (236/251) (11 seconds passed, rRewrite 2e5b34a51afb5a43f6b5d3e4400bfa0400629a4e (236/251) (11 seconds passed, rRewrite 914c89a1ea1e325f8be990c47cb71eaf88c29649 (236/251) (11 seconds passed, remaining 0 predicted)    </span><br><span class="line">WARNING: Ref &apos;refs/heads/branch1&apos; is unchanged</span><br><span class="line">WARNING: Ref &apos;refs/heads/master&apos; is unchanged</span><br><span class="line">Ref &apos;refs/heads/branch2&apos; was rewritten</span><br><span class="line">WARNING: Ref &apos;refs/remotes/origin/master&apos; is unchanged</span><br><span class="line">WARNING: Ref &apos;refs/remotes/origin/branch1&apos; is unchanged</span><br><span class="line">WARNING: Ref &apos;refs/remotes/origin/master&apos; is unchanged</span><br><span class="line">Ref &apos;refs/remotes/origin/branch2&apos; was rewritten</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>清理所有废弃的引用</strong></p>
+ <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ git for-each-ref --format=&apos;delete %(refname)&apos; refs/original | git update-ref --stdin</span><br></pre></td></tr></table></figure>
+
+
+</li>
+</ol>
+<ol start="6">
+<li><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">git verify-pack -v .git/objects/pack/pack-7b03cc896f31b2441f3a791ef760bd28495697e6.idx \</span><br><span class="line">| sort -k 3 -n \</span><br><span class="line">| tail -10</span><br><span class="line"></span><br><span class="line">git rev-list --objects --all | grep 185ab8d</span><br><span class="line"></span><br><span class="line">git log --pretty=oneline --branches -- spark-assembly-1.3.1-hadoop2.4.0.jar</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">git filter-branch --force --index-filter \</span><br><span class="line">&apos;git rm --cached --ignore-unmatch spark-assembly-1.3.1-hadoop2.4.0.jar&apos; \</span><br><span class="line">--prune-empty --tag-name-filter cat -- --all</span><br><span class="line"></span><br><span class="line">git for-each-ref --format=&apos;delete %(refname)&apos; refs/original | git update-ref --stdin</span><br><span class="line"></span><br><span class="line">git reflog expire --expire=now --all</span><br><span class="line"></span><br><span class="line">git gc --prune=now</span><br><span class="line"></span><br><span class="line">git count-objects -v</span><br><span class="line"></span><br><span class="line">git push origin --force --all</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<p>参考文章：</p>
+<ol>
+<li><p><a href="https://help.github.com/articles/removing-sensitive-data-from-a-repository/" target="_blank" rel="noopener">https://help.github.com/articles/removing-sensitive-data-from-a-repository/</a></p>
+</li>
+<li><p><a href="http://blog.csdn.net/zcf1002797280/article/details/50723783" target="_blank" rel="noopener">http://blog.csdn.net/zcf1002797280/article/details/50723783</a></p>
+</li>
+<li><p><a href="https://github.com/18F/C2/issues/439" target="_blank" rel="noopener">https://github.com/18F/C2/issues/439</a></p>
+</li>
+<li><p><a href="http://blog.csdn.net/vite_s/article/details/52315867" target="_blank" rel="noopener">http://blog.csdn.net/vite_s/article/details/52315867</a></p>
+</li>
+<li><p><a href="http://blog.csdn.net/lwfcgz/article/details/49453375" target="_blank" rel="noopener">http://blog.csdn.net/lwfcgz/article/details/49453375</a></p>
+</li>
+</ol>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/11/20/Hyperledger-Fabric编译/" rel="next" title="Hyperledger Fabric编译">
+                <i class="fa fa-chevron-left"></i> Hyperledger Fabric编译
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/11/22/Kubernetes构建高可用集群/" rel="prev" title="Kubernetes构建高可用集群">
+                Kubernetes构建高可用集群 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#背景"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#操作思路"><span class="nav-number">2.</span> <span class="nav-text">操作思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#详细步骤"><span class="nav-number">3.</span> <span class="nav-text">详细步骤</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

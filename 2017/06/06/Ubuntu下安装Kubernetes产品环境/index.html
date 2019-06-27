@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="以下过程在Ubuntu 16.04裸机上完全跑通  本文展示了在Ubuntu 16.04系统上搭建Kubernetes集群的方法，用到了Canonical Kubernetes的发行版本，这是一种快捷搭建本地Kubernetes集群的方法，并能够支持动态增删node节点。 主要搭建步骤是，使用conjure-up工具，结合juju，基于LXD搭建Kubernetes集群，并使用kubelet和k">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Ubuntu下搭建Kubernetes产品环境集群">
+<meta property="og:url" content="http://www.huamo.online/2017/06/06/Ubuntu下安装Kubernetes产品环境/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="以下过程在Ubuntu 16.04裸机上完全跑通  本文展示了在Ubuntu 16.04系统上搭建Kubernetes集群的方法，用到了Canonical Kubernetes的发行版本，这是一种快捷搭建本地Kubernetes集群的方法，并能够支持动态增删node节点。 主要搭建步骤是，使用conjure-up工具，结合juju，基于LXD搭建Kubernetes集群，并使用kubelet和k">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/k8s_1.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/k8s_2.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/k8s_3.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/k8s_4.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/k8s_5.png">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.970Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Ubuntu下搭建Kubernetes产品环境集群">
+<meta name="twitter:description" content="以下过程在Ubuntu 16.04裸机上完全跑通  本文展示了在Ubuntu 16.04系统上搭建Kubernetes集群的方法，用到了Canonical Kubernetes的发行版本，这是一种快捷搭建本地Kubernetes集群的方法，并能够支持动态增删node节点。 主要搭建步骤是，使用conjure-up工具，结合juju，基于LXD搭建Kubernetes集群，并使用kubelet和k">
+<meta name="twitter:image" content="http://www.huamo.online/source_code/image/k8s_1.png">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2017/06/06/Ubuntu下安装Kubernetes产品环境/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Ubuntu下搭建Kubernetes产品环境集群 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2017/06/06/Ubuntu下安装Kubernetes产品环境/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Ubuntu下搭建Kubernetes产品环境集群
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2017-06-06 18:20:04" itemprop="dateCreated datePublished" datetime="2017-06-06T18:20:04+08:00">2017-06-06</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Kubernetes/" itemprop="url" rel="index"><span itemprop="name">Kubernetes</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>以下过程在<code>Ubuntu 16.04</code>裸机上完全跑通</p>
+</blockquote>
+<p>本文展示了在<code>Ubuntu 16.04</code>系统上搭建Kubernetes集群的方法，用到了Canonical Kubernetes的发行版本，这是一种快捷搭建本地Kubernetes集群的方法，并能够支持动态增删node节点。</p>
+<p>主要搭建步骤是，使用<code>conjure-up</code>工具，结合<code>juju</code>，基于<code>LXD</code>搭建Kubernetes集群，并使用<code>kubelet</code>和<code>kube-proxy</code>将其他机器作为node节点，注册入该集群中。</p>
+<p>以下为详细步骤（最好已经翻墙）<a id="more"></a></p>
+<h2 id="安装snapd"><a href="#安装snapd" class="headerlink" title="安装snapd"></a>安装<code>snapd</code></h2><p><code>conjure-up</code>工具需要使用<code>Ubuntu 16.04</code>新的包管理器<code>snapd</code>安装，所以先安装<code>snapd</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo apt update</span><br><span class="line">sudo apt install snapd</span><br></pre></td></tr></table></figure>
+
+<h2 id="安装LXD"><a href="#安装LXD" class="headerlink" title="安装LXD"></a>安装<code>LXD</code></h2><p><code>conjure-up</code>是基于<code>LXD</code>搭建集群的，所以要先安装<code>LXD</code>，并做好初始化配置。这里面涉及到<code>lxd</code>用户组的操作。下面先简单介绍下其用法。</p>
+<blockquote>
+<p>当安装好<code>LXD</code>后，会自动创建一个<code>lxd</code>用户组，只有在这个用户组才能操作<code>LXD</code>程序，所有<code>admin</code>和<code>sudoers</code>的用户，都会被自动加入到<code>lxd</code>用户组中。所以如果你不在这个组内，就需要手动添加到<code>lxd</code>组中。</p>
+<p>因为用户组成员权限只会在登录时生效，所以你要么关闭当前回话，然后重新登录；要么就使用<code>newgrp lxd</code>命令，在当前会话中将自己切换到<code>lxd</code>用户组中。</p>
+</blockquote>
+<p>用法示例</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"># 显示用户&quot;test&quot;当前隶属于哪些用户组</span><br><span class="line">test@ubuntu$ groups test</span><br><span class="line">test : test docker</span><br><span class="line"></span><br><span class="line"># 将用户&quot;test&quot;添加到&quot;lxd&quot;用户组中</span><br><span class="line">test@ubuntu$ sudo gpasswd -a test lxd</span><br><span class="line">Adding user test to group lxd</span><br><span class="line"></span><br><span class="line"># 查看添加效果</span><br><span class="line">test@ubuntu$ groups test</span><br><span class="line">test : test lxd docker</span><br><span class="line"># 目前来说，test用户理论上已经加入到lxd用户组中。</span><br><span class="line"># 但是若操作lxd用户组才有权限的文件，会提示Permission denied。</span><br><span class="line"># 由此说明添加并没有实际生效</span><br><span class="line"></span><br><span class="line"># 现在对&quot;lxd&quot;用户组运行&quot;newgrp&quot;命令</span><br><span class="line">test@ubuntu$ newgrp lxd</span><br><span class="line"># 再次操作文件，发现已经可以正常操作，&quot;newgrp&quot;生效</span><br></pre></td></tr></table></figure>
+
+<p>OK，现在开始安装<code>LXD</code></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install lxd</span><br><span class="line">groups test</span><br><span class="line">sudo gpasswd -a test lxd</span><br><span class="line">groups test</span><br><span class="line">newgrp lxd</span><br><span class="line">sudo lxd init //配置一大堆，都可以选默认，但&quot;Setup an ipv6 subnet&quot;要选&quot;NO&quot;</span><br></pre></td></tr></table></figure>
+
+<h2 id="安装conjure-up"><a href="#安装conjure-up" class="headerlink" title="安装conjure-up"></a>安装<code>conjure-up</code></h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install software-properties-common //安装add-apt-repository命令</span><br><span class="line">sudo apt-add-repository ppa:juju/stable</span><br><span class="line">sudo apt-add-repository ppa:conjure-up/next</span><br><span class="line">sudo apt update</span><br><span class="line">sudo snap install conjure-up --classic</span><br></pre></td></tr></table></figure>
+
+<h2 id="安装Kubernetes"><a href="#安装Kubernetes" class="headerlink" title="安装Kubernetes"></a>安装<code>Kubernetes</code></h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">conjure-up kubernetes</span><br><span class="line"></span><br><span class="line">//选择localhost安装，即可在本地搭建一个集群</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>如果有提示<code>Missing dependencies for SOCKS support</code>，是因为系统的全局代理和<code>conjure-up</code>冲突，需要<code>unset all_proxy</code>。但是这样又会导致安装过程中，因为没有翻墙，有些镜像下载失败导致卡住，所以建议修改hosts翻墙。</p>
+</li>
+<li><p>切记<code>LXD</code>要在<code>conjure-up</code>运行之前装好并init完毕，否则会出现各种与<code>LXD</code>相关的错误。</p>
+</li>
+</ul>
+<p>选择<code>The Canonical Distribution of Kubernetes</code>。</p>
+<p><img src="/source_code/image/k8s_1.png" alt="Alt text"></p>
+<p>选择<code>Deploy New Self-Hosted Controller</code>。</p>
+<p><img src="/source_code/image/k8s_2.png" alt="Alt text"></p>
+<p>选择<code>localhost</code>。</p>
+<p><img src="/source_code/image/k8s_3.png" alt="Alt text"></p>
+<p>一路<code>Deploy</code>过去，也可以将worker节点Configure为1，毕竟node节点可以由其它机器提供。</p>
+<p><img src="/source_code/image/k8s_4.png" alt="Alt text"></p>
+<p>坐等安装，时间会比较长，这个过程需要翻墙下一些镜像。</p>
+<p><img src="/source_code/image/k8s_5.png" alt="Alt text"></p>
+<h2 id="暴露Master节点以增加Node"><a href="#暴露Master节点以增加Node" class="headerlink" title="暴露Master节点以增加Node"></a>暴露<code>Master</code>节点以增加<code>Node</code></h2><p>集群安装完毕后，在<code>~/bin</code>目录下生成了一个<code>kubectl.xxx</code>可执行文件，该文件可以和集群进行交互，可以查看安装效果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~/bin/kubectl cluster-info</span><br></pre></td></tr></table></figure>
+
+<p>部署完成后，master的服务都运行在内网IP之上，需要将其暴露到集群外，这样才能让其他机器访问到。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nohup ~/bin/kubectl proxy --accept-hosts=&quot;^*$&quot; --address=&quot;0.0.0.0&quot; &amp;</span><br><span class="line"></span><br><span class="line">//这样就将master服务暴露在了http://106.106.9.22:8001。其中106.106.9.22为master所在服务器的IP地址</span><br></pre></td></tr></table></figure>
+
+<h2 id="添加Node节点"><a href="#添加Node节点" class="headerlink" title="添加Node节点"></a>添加<code>Node</code>节点</h2><p>添加Node节点，需要在Node机器上运行2个进程：<code>kubelet</code>和<code>kube-proxy</code>，启动时指定master的服务地址，这样就可以将该机器注册进集群中。同时Node机器要安装好<code>Docker</code>。</p>
+<ul>
+<li><p>参看Docker官方文档，安装<code>Docker</code></p>
+</li>
+<li><p>在<a href="https://github.com/kubernetes/kubernetes/releases/latest" target="_blank" rel="noopener">Kubernetes最新发布页</a>下载发布包<code>kubernetes.tar.gz</code></p>
+</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">wget https://github.com/kubernetes/kubernetes/releases/latest/kubernetes.tar.gz</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>解压发布包</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -xf kubernetes.tar.gz</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>运行<code>cluster/get-kube-binaries.sh</code>拉取最新的二进制包，这里面包含各种所需要的包，我们需要的包都放在<code>kubernetes/server/kubernetes/server/bin/</code>目录下。</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bash cluster/get-kube-binaries.sh</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>运行<code>kubelet</code>:</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubelet --api-servers=http://106.106.9.22:8001 --register-node</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>运行<code>kube-proxy</code>:</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kube-proxy --master=http://106.106.9.22:8001</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>在master节点查看添加效果</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~/bin/kubectl get no</span><br></pre></td></tr></table></figure>
+
+<h2 id="删除Node节点"><a href="#删除Node节点" class="headerlink" title="删除Node节点"></a>删除<code>Node</code>节点</h2><ul>
+<li><p>杀掉node节点中的<code>kubelet</code>和<code>kube-proxy</code>进程</p>
+</li>
+<li><p>在master节点删除node</p>
+</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~/bin/kubectl delete no worker1 //worker1为该node节点名称</span><br></pre></td></tr></table></figure>
+
+<h2 id="SSH连接cluster"><a href="#SSH连接cluster" class="headerlink" title="SSH连接cluster"></a><code>SSH</code>连接<code>cluster</code></h2><p><strong>十分有用</strong>：对于这种方式部署的<code>kubernetes</code>集群，如果需要进入到<code>master</code>节点，或者<code>node</code>节点，进行数据查看或调试。有极其简单的SSH方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">juju ssh 5</span><br></pre></td></tr></table></figure>
+
+<p>数字5表示5号<code>machine</code>，具体可以通过<code>juju status</code>查看所有服务都运行在哪个<code>machine</code>上，当然了，还有很多花式的<code>SSH</code>连接参数，都可以帮助你连接到需要的节点上，具体可以参看<code>juju ssh --help</code></p>
+<h2 id="可能用到的命令"><a href="#可能用到的命令" class="headerlink" title="可能用到的命令"></a>可能用到的命令</h2><ul>
+<li><code>conjure-up kubernetes</code>不一定能一次成功，如下命令也许有用：</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">juju status </span><br><span class="line">// 查看当前集群的安装信息</span><br><span class="line"></span><br><span class="line">juju destroy-controller --destroy-all-models test</span><br><span class="line">// 销毁名为test的controller，包括所有的machines，applications，data和其它resources都会被清除。通过这种方式，可以干净的清空之前失败的kubernetes安装。</span><br></pre></td></tr></table></figure>
+
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><ul>
+<li><p><a href="https://kubernetes.io/docs/getting-started-guides/ubuntu/local/" target="_blank" rel="noopener">Local Kubernetes development with LXD</a></p>
+</li>
+<li><p><a href="https://askubuntu.com/questions/856057/newgrp-function/856069" target="_blank" rel="noopener">newgrp function</a></p>
+</li>
+<li><p><a href="https://linuxcontainers.org/lxd/getting-started-cli/" target="_blank" rel="noopener">Installing LXD and the command line tool</a></p>
+</li>
+</ul>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/06/05/Ubuntu-NFS使用/" rel="next" title="Ubuntu NFS使用">
+                <i class="fa fa-chevron-left"></i> Ubuntu NFS使用
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/06/07/Kubernetes搭建TLS私有docker仓库/" rel="prev" title="Kubernetes搭建TLS私有docker仓库">
+                Kubernetes搭建TLS私有docker仓库 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#安装snapd"><span class="nav-number">1.</span> <span class="nav-text">安装snapd</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#安装LXD"><span class="nav-number">2.</span> <span class="nav-text">安装LXD</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#安装conjure-up"><span class="nav-number">3.</span> <span class="nav-text">安装conjure-up</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#安装Kubernetes"><span class="nav-number">4.</span> <span class="nav-text">安装Kubernetes</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#暴露Master节点以增加Node"><span class="nav-number">5.</span> <span class="nav-text">暴露Master节点以增加Node</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#添加Node节点"><span class="nav-number">6.</span> <span class="nav-text">添加Node节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#删除Node节点"><span class="nav-number">7.</span> <span class="nav-text">删除Node节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SSH连接cluster"><span class="nav-number">8.</span> <span class="nav-text">SSH连接cluster</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#可能用到的命令"><span class="nav-number">9.</span> <span class="nav-text">可能用到的命令</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考文章"><span class="nav-number">10.</span> <span class="nav-text">参考文章</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

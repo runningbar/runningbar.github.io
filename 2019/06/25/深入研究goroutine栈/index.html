@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  前言本文记录了自己深入理解goroutine栈布局的过程，潜入了一圈之后，发现底下的世界确实别有洞天，感觉很多东西都开阔明晰了许多。 内存布局是一个强相关于操作系统，处理器，机器架构的领域，和语言关系反而会少一些。只是golang诞生于plan9，在机器汇编层面，总是有一些自己特立独行的惯例规约，所以用golang切入，也是一个不错的契机。本文">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入研究goroutine栈">
+<meta property="og:url" content="http://www.huamo.online/2019/06/25/深入研究goroutine栈/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  前言本文记录了自己深入理解goroutine栈布局的过程，潜入了一圈之后，发现底下的世界确实别有洞天，感觉很多东西都开阔明晰了许多。 内存布局是一个强相关于操作系统，处理器，机器架构的领域，和语言关系反而会少一些。只是golang诞生于plan9，在机器汇编层面，总是有一些自己特立独行的惯例规约，所以用golang切入，也是一个不错的契机。本文">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/x86%E5%AF%84%E5%AD%98%E5%99%A8%E5%90%8D%E7%A7%B0%E5%AF%BB%E5%9D%80.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/x86%E5%AF%84%E5%AD%98%E5%99%A8.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/golang%E4%B8%8D%E7%94%A8%E5%AF%84%E5%AD%98%E5%99%A8%E4%BC%A0%E5%8F%82.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/%E8%B0%83%E7%94%A8%E6%A0%88%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E7%A4%BA%E6%84%8F%E5%9B%BE.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/32%E4%BD%8DLinux%E7%B3%BB%E7%BB%9F%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E7%A4%BA%E6%84%8F%E5%9B%BE.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/golang%E8%B0%83%E7%94%A8%E6%A0%88%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E5%AE%9E%E4%BE%8B%E4%B9%8Bmain%E5%B8%A7.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/golang%E8%B0%83%E7%94%A8%E6%A0%88%E5%AE%8C%E6%95%B4%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E5%AE%9E%E4%BE%8B.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/Golang%E5%88%86%E6%AE%B5%E6%A0%88%E5%9B%9E%E6%BA%AF%E6%9C%BA%E7%90%86.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/goroutine%E6%A0%88StackGuard.png">
+<meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/golang%E6%A0%88%E6%BA%A2%E5%87%BA%E6%A3%80%E6%B5%8B%E9%80%BB%E8%BE%91.png">
+<meta property="og:updated_time" content="2019-06-27T07:35:05.276Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="深入研究goroutine栈">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  前言本文记录了自己深入理解goroutine栈布局的过程，潜入了一圈之后，发现底下的世界确实别有洞天，感觉很多东西都开阔明晰了许多。 内存布局是一个强相关于操作系统，处理器，机器架构的领域，和语言关系反而会少一些。只是golang诞生于plan9，在机器汇编层面，总是有一些自己特立独行的惯例规约，所以用golang切入，也是一个不错的契机。本文">
+<meta name="twitter:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/x86%E5%AF%84%E5%AD%98%E5%99%A8%E5%90%8D%E7%A7%B0%E5%AF%BB%E5%9D%80.png">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2019/06/25/深入研究goroutine栈/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>深入研究goroutine栈 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2019/06/25/深入研究goroutine栈/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">深入研究goroutine栈
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-06-25 14:16:24" itemprop="dateCreated datePublished" datetime="2019-06-25T14:16:24+08:00">2019-06-25</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-27 15:35:05" itemprop="dateModified" datetime="2019-06-27T15:35:05+08:00">2019-06-27</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>本文记录了自己深入理解<code>goroutine</code>栈布局的过程，潜入了一圈之后，发现底下的世界确实别有洞天，感觉很多东西都开阔明晰了许多。</p>
+<p>内存布局是一个强相关于操作系统，处理器，机器架构的领域，和语言关系反而会少一些。只是<code>golang</code>诞生于<code>plan9</code>，在机器汇编层面，总是有一些自己特立独行的惯例规约，所以用<code>golang</code>切入，也是一个不错的契机。本文以<code>x86</code>架构为准进行讲解，都走了一遍，才发现其实都是在搞清楚一个话题：调用惯例。有兴趣的可以搜<code>calling convention</code></p>
+<a id="more"></a>
+
+<h1 id="机器架构基础"><a href="#机器架构基础" class="headerlink" title="机器架构基础"></a>机器架构基础</h1><h2 id="x86寄存器"><a href="#x86寄存器" class="headerlink" title="x86寄存器"></a>x86寄存器</h2><p>我们在深挖golang runtime的时候，需要频繁和汇编打交道，其中寄存器尤为常见。常用到的寄存器有3类：</p>
+<ol>
+<li><p><code>SP / ESP / RSP</code>: <strong>栈指针寄存器</strong>，总是指向栈顶。在<code>x86</code>架构下，这个寄存器有3个，分别对应16位<code>SP</code> / 32位<code>ESP</code> / 64位<code>RSP</code></p>
+</li>
+<li><p><code>BP / EBP / RBP</code>: <strong>基准指针寄存器</strong>，维护当前栈帧的基准地址，以便用来索引变量和参数，就像一个锚点一样，在其它架构中它等价于帧指针<code>FP</code>，只是在x86架构下，变量和参数都可以通过SP来索引，所以BP在x86下并不是那么的专用了，更像是个通用寄存器。同上面一样，这个寄存器有3个，分别对应16位<code>BP</code> / 32位<code>EBP</code> / 64位<code>RBP</code></p>
+</li>
+<li><p><code>IP / EIP / RIP</code>: <strong>指令指针寄存器</strong>，总是指向下一个指令的内存地址。就是我们熟知的<code>PC</code>，只是在x86架构下，它叫做<code>IP</code>。同上面一样，这个寄存器有3个，分别对应16位<code>IP</code> / 32位<code>EIP</code> / 64位<code>RIP</code></p>
+</li>
+</ol>
+<blockquote>
+<p>对于同一个寄存器，我们可以用不同的名字引用这个寄存器上的不同部分。例如可以用<code>%ESP</code>指向<code>%RSP</code>的低32位部分。 图示：</p>
+<p><img src="/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/x86%E5%AF%84%E5%AD%98%E5%99%A8%E5%90%8D%E7%A7%B0%E5%AF%BB%E5%9D%80.png" alt></p>
+<p>图片来自：<a href="https://en.wikibooks.org/wiki/X86_Assembly/X86_Architecture" target="_blank" rel="noopener">https://en.wikibooks.org/wiki/X86_Assembly/X86_Architecture</a></p>
+</blockquote>
+<p>x86寄存器如下图所示：</p>
+<p><img src="/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/x86%E5%AF%84%E5%AD%98%E5%99%A8.png" alt></p>
+<blockquote>
+<p>图片来自：<a href="https://cseweb.ucsd.edu/classes/sp10/cse141/pdf/02/S01_x86_64.key.pdf" target="_blank" rel="noopener">https://cseweb.ucsd.edu/classes/sp10/cse141/pdf/02/S01_x86_64.key.pdf</a></p>
+</blockquote>
+<h3 id="golang没有采用x86-64架构函数传参优化"><a href="#golang没有采用x86-64架构函数传参优化" class="headerlink" title="golang没有采用x86-64架构函数传参优化"></a>golang没有采用x86-64架构函数传参优化</h3><p>虽然在x86-64架构下，增加了很多通用寄存器，使得<strong>调用惯例</strong>(<code>calling convention</code>)变为函数传参可以部分（最多6个）使用寄存器直接传递，但是在golang中，编译器强制规定<strong>函数的传参全部都用栈传递，不使用寄存器传参</strong>。可以在下图中看到区别：</p>
+<p><img src="/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/golang%E4%B8%8D%E7%94%A8%E5%AF%84%E5%AD%98%E5%99%A8%E4%BC%A0%E5%8F%82.png" alt></p>
+<p>个人猜测原因有2：一方面是为了使生成的伪汇编方便跨平台，另一方面是基于连续栈的拷贝考虑。而这一强制规定同样也利于我们窥探golang栈帧的内存布局（<code>stack frame layout</code>）</p>
+<h2 id="x86-64二进制单元"><a href="#x86-64二进制单元" class="headerlink" title="x86-64二进制单元"></a>x86-64二进制单元</h2><p>在x86-64架构下，intel定义了一组二进制单元：</p>
+<ul>
+<li><p>a byte（字节）: 8位</p>
+</li>
+<li><p>a word（字）: 16位</p>
+</li>
+<li><p>a double word（双字）: 32位</p>
+</li>
+<li><p>a quadword（四字）: 64位</p>
+</li>
+<li><p>a double quadword（双四字）: 128位</p>
+</li>
+</ul>
+<p>intel存储字节的顺序为<strong>小端优先</strong>：即低有效字节存储在内存低地址中。</p>
+<h2 id="栈是什么，栈帧是什么，堆又是什么"><a href="#栈是什么，栈帧是什么，堆又是什么" class="headerlink" title="栈是什么，栈帧是什么，堆又是什么"></a>栈是什么，栈帧是什么，堆又是什么</h2><p>在runtime环境中执行程序时，常常会提到这3个名词。这并不是数据结构与算法中的抽象数据类型，而是属于运行时范畴。</p>
+<p><strong>堆是用来存储动态读写数据的内存区域</strong>。在golang里面，凡是在编译期逃逸分析结果为”逃逸”的数据，都会分配在堆上托管。</p>
+<p><strong>栈其实是调用栈（<code>call stack</code>）的简称</strong>。对应于一系列活动的<a href="https://en.wikipedia.org/wiki/Subroutine" target="_blank" rel="noopener"><code>subroutine</code></a>。在golang里面，<strong>就是一个栈对应一个<code>goroutine</code></strong>。现在的golang runtime都是使用了连续栈管理方式，详情会在后文描述。</p>
+<p><strong>栈帧（<code>stack frame</code>）又常被称为帧（<code>frame</code>）</strong>。一个栈其实就是由很多帧构成的，它描述了函数之间的调用关系。简单来说，你可以把帧看作是栈中栈，<strong>每一帧就对应了一次尚未返回的函数调用</strong>，它本身也是以栈的形式存放数据的。 例如：在一个<code>goroutine</code>里面，函数<code>foo()</code>正在调用函数<code>bar()</code>，那么这个调用栈的内存布局将会如下图所示：</p>
+<p><img src="/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/%E8%B0%83%E7%94%A8%E6%A0%88%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E7%A4%BA%E6%84%8F%E5%9B%BE.png" alt></p>
+<p>内存布局是语言无关的，这是操作系统的内存设计。该示意图基本是架构无关的，不同架构的区别是栈的生长方向是向低地址（如本图）还是向高地址。</p>
+<p><strong>按照push入栈的顺序，一个栈帧一般会包含如下几个部分</strong>：</p>
+<ul>
+<li><p>传入该函数的参数值，如果有的话。对于golang来说，所有的传参都是值拷贝，所以都会复制一份到新的函数栈帧里存储。</p>
+</li>
+<li><p>返回地址，可以用来返回到调用者代码。在上图中，<code>bar()</code>的栈帧这个部分记录的就是返回到<code>foo()</code>代码的地址。</p>
+</li>
+<li><p>函数本地变量，如果有的话。</p>
+</li>
+</ul>
+<h3 id="SP和FP的用法原理"><a href="#SP和FP的用法原理" class="headerlink" title="SP和FP的用法原理"></a><code>SP</code>和<code>FP</code>的用法原理</h3><p>在x86架构下，已经没有<code>FP</code>这个物理寄存器，如果你非想找到一个等价的替代品，<code>RBP</code>可能符号你的要求。</p>
+<p>当栈帧的大小不相同时，函数调用完成后，pop一个帧会使栈指针<code>SP</code>的变化量不固定。所以就需要有一个返回地址来标记返回的位置，这就是帧指针<code>FP</code>。</p>
+<p>当函数返回时，当前<code>SP</code>替换为当前<code>FP</code>的值，就能够返回到上一层函数，之所以能做到这些，是因为<code>FP</code>存储了当该函数被调用前栈顶指针<code>SP</code>的值。这样层层回溯，就能双向链接起整个调用栈。</p>
+<p><code>SP</code>是在一个调用栈中所有调用之间共享的可变寄存器。而帧指针<code>FP</code>则是该帧对应的函数被调用前，栈顶指针<code>SP</code>的值快照。</p>
+<h3 id="FP实践习惯"><a href="#FP实践习惯" class="headerlink" title="FP实践习惯"></a><code>FP</code>实践习惯</h3><p>在大多数操作系统中，栈帧都会留出一个区域来保存FP寄存器的旧值，即这个栈帧的调用者执行时FP寄存器的值。例如<code>foo()</code>函数调用<code>bar()</code>函数，那么<code>bar()</code>帧就会有一块内存区域维护着能够指向<code>foo()</code>帧的指针。该值在进入帧时保存，并在<code>return</code>时恢复。这个结合上面的用法原理就能连续的访问每个帧。</p>
+<h2 id="栈为什么是向下生长"><a href="#栈为什么是向下生长" class="headerlink" title="栈为什么是向下生长"></a>栈为什么是向下生长</h2><p>这里说的“向下生长”，指的是向着内存低地址方向生长。在现代主流机器架构上（例如<code>x86</code>）中，栈都是向下生长的。然而，也有一些处理器（例如<code>B5000</code>）栈是向上生长的，还有一些架构（例如<code>System Z</code>）允许自定义栈的生长方向，甚至还有一些处理器（例如<code>SPARC</code>）是循环栈的处理方式。</p>
+<p>任何一个执行中的进程都有多种内存域：代码，只读数据，可读写数据等等。像代码和只读数据是静态且不变的，而有些数据是动态生成和销毁的，这就涉及到了内存域的扩张和缩小。</p>
+<p>在32位Linux系统中，内存布局的解决方案如下所示：</p>
+<ul>
+<li><p>代码，共享库，只读数据映射到了内存最开端</p>
+</li>
+<li><p>然后是堆，并向上生长</p>
+</li>
+<li><p>操作系统内核映射到了内存最末端的1GB空间</p>
+</li>
+<li><p>栈从内核最底部边界开始，并向下生长</p>
+</li>
+</ul>
+<p>对于多线程程序，同时会有多个栈存在，这个时候，主线程栈依然从内核底部边界开始。每一个线程都有最大栈尺寸，所以下一个线程偏移主线程最大栈尺寸位置开始，以此类推。</p>
+<p><img src="/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/32%E4%BD%8DLinux%E7%B3%BB%E7%BB%9F%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E7%A4%BA%E6%84%8F%E5%9B%BE.png" alt></p>
+<p>至于栈为什么是向下生长的原因，需要追溯到1974年4月Intel发布的<code>8080(8-bit)</code>处理器，该处理器影响了第一版x86的设计。在<a href="http://tcm.computerhistory.org/ComputerTimeline/Chap37_intel_CS2.pdf" target="_blank" rel="noopener">计算机时间线关于intel历史</a>一章中，<code>Stanley Mazor</code>（世界上第一款处理器<code>Intel 4004</code>的发明人之一）有过简单的解释：之所以选择将栈指针向下延伸，是为了简化从用户程序(正索引)到调用栈的索引，同时也为了简化显示调用栈的内容。<strong>其实至于怎么简化了，没有任何解释，所以这更像是一个向后兼容的历史设计惯例</strong></p>
+<h2 id="汇编语法"><a href="#汇编语法" class="headerlink" title="汇编语法"></a>汇编语法</h2><p>在Golang中编译出来的伪汇编代码中，使用的是<code>GAS</code>汇编语法（<code>Gnu ASsembler</code>），采用AT&amp;T汇编格式。而我们常常见到的其它各种汇编器，例如Windows推出的<code>MASM</code>，免费开源的<code>NASM</code>，都是基于Intel汇编语法。这两者有一些明显的区别，需要分清。</p>
+<ul>
+<li><strong>最重要的区别，就是两者指令的源操作数和目标操作数的位置正好相反</strong>。例如下面两行汇编都做了相同的事情</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GAS:   movl %eax %ebx // 将eax寄存器的值复制到ebx寄存器中</span><br><span class="line">Intel: mov ebx eax    // 将eax寄存器的值复制到ebx寄存器中</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>在GAS中，操作数字长由命令后缀表示，例如<code>movq（64位）, movl(32位)</code>。而Intel则是用单独的标识符，例如<code>byte ptr</code>。下面两行汇编都实现了：将val值复制一个字节到AL寄存器中</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GAS: movb val %al</span><br><span class="line">Intel: mov al, byte ptr val</span><br></pre></td></tr></table></figure>
+
+<h1 id="OK，开始剖析Golang调用栈帧内存布局"><a href="#OK，开始剖析Golang调用栈帧内存布局" class="headerlink" title="OK，开始剖析Golang调用栈帧内存布局"></a>OK，开始剖析Golang调用栈帧内存布局</h1><h2 id="从golang-runtime源码获取指导"><a href="#从golang-runtime源码获取指导" class="headerlink" title="从golang runtime源码获取指导"></a>从golang runtime源码获取指导</h2><p>翻看<code>runtime/stack.go</code>源码，无意中在一段注释里发现了 <strong><code>x86</code>架构下golang栈帧布局示意图</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Stack frame layout</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// (x86)</span></span><br><span class="line"><span class="comment">// +------------------+</span></span><br><span class="line"><span class="comment">// | args from caller |</span></span><br><span class="line"><span class="comment">// +------------------+ &lt;- frame-&gt;argp</span></span><br><span class="line"><span class="comment">// |  return address  |</span></span><br><span class="line"><span class="comment">// +------------------+</span></span><br><span class="line"><span class="comment">// |  caller's BP (*) | (*) if framepointer_enabled &amp;&amp; varp &lt; sp</span></span><br><span class="line"><span class="comment">// +------------------+ &lt;- frame-&gt;varp</span></span><br><span class="line"><span class="comment">// |     locals       |</span></span><br><span class="line"><span class="comment">// +------------------+</span></span><br><span class="line"><span class="comment">// |  args to callee  |</span></span><br><span class="line"><span class="comment">// +------------------+ &lt;- frame-&gt;sp</span></span><br></pre></td></tr></table></figure>
+
+<p>这张图我看了好久才看明白上下边缘两句话的意思，也就是说在 <strong>x86架构下，golang栈帧布局从上（高地址）到下（低地址）依次为：这个函数帧的调用者传入的参数， 这个函数帧的返回地址，调用者调用时的BP快照（见上文<code>FP</code>用法原理），该帧本地变量，该帧调用其它函数需要传递的参数。</strong></p>
+<h2 id="golang-工具链"><a href="#golang-工具链" class="headerlink" title="golang 工具链"></a>golang 工具链</h2><ul>
+<li>禁止内联编译代码</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ GOOS=linux GOARCH=amd64 go build -gcflags=all=&quot;-N -l&quot; main.go</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>禁止内联生成伪汇编代码</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ GOOS=linux GOARCH=amd64 go tool compile -S -N -l main.go</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>反汇编，生成伪汇编代码，这样生成的汇编更完整，并翻译了很多符号表</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ 编译出golang可执行文件</span><br><span class="line">$ go tool objdump -S -s main main.o</span><br></pre></td></tr></table></figure>
+
+<h2 id="来个实例"><a href="#来个实例" class="headerlink" title="来个实例"></a>来个实例</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="comment">// 为了避免add帧尺寸为0，所以强行加入一个局部变量tmp</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">add</span><span class="params">(a, b <span class="keyword">int64</span>)</span> <span class="params">(<span class="keyword">int64</span>, <span class="keyword">int64</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> tmp <span class="keyword">int64</span> = <span class="number">1</span></span><br><span class="line">	tmp = tmp + a</span><br><span class="line">	<span class="keyword">return</span> a + b, a - b</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> c <span class="keyword">int64</span> = <span class="number">10</span></span><br><span class="line">	<span class="keyword">var</span> d <span class="keyword">int64</span> = <span class="number">12</span></span><br><span class="line">	add(c, d)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>剖析内存布局，编译时记得要禁止内联优化，使用如下命令显示汇编代码：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ GOOS=linux GOARCH=amd64 go tool compile -S -N -l main.go</span><br></pre></td></tr></table></figure>
+
+<h2 id="分析main帧"><a href="#分析main帧" class="headerlink" title="分析main帧"></a>分析main帧</h2><p>去除掉golang实现连续栈机制的大量prolog和epilog，以及GC相关的<code>FUNCDATA &amp; PCDATA</code>，我们可以得到main()函数对应的伪汇编代码，并由此构造出main帧内存布局。</p>
+<blockquote>
+<p>阅读go汇编，最好先要阅读下<a href="https://golang.org/doc/asm" target="_blank" rel="noopener">Go汇编语言</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">0x0000</span> <span class="number">00000</span> (main.<span class="keyword">go</span>:<span class="number">9</span>)	TEXT	<span class="string">""</span>.main(SB), ABIInternal, $<span class="number">56</span><span class="number">-0</span></span><br><span class="line"><span class="comment">// ... omit some lines：栈分裂prolog</span></span><br><span class="line"><span class="number">0x000f</span> <span class="number">00015</span> (main.<span class="keyword">go</span>:<span class="number">9</span>)	SUBQ	$<span class="number">56</span>, SP</span><br><span class="line"><span class="number">0x0013</span> <span class="number">00019</span> (main.<span class="keyword">go</span>:<span class="number">9</span>)	MOVQ	BP, <span class="number">48</span>(SP)</span><br><span class="line"><span class="number">0x0018</span> <span class="number">00024</span> (main.<span class="keyword">go</span>:<span class="number">9</span>)	LEAQ	<span class="number">48</span>(SP), BP</span><br><span class="line"><span class="comment">// ... omit some lines：GC相关</span></span><br><span class="line"><span class="number">0x001d</span> <span class="number">00029</span> (main.<span class="keyword">go</span>:<span class="number">10</span>)	MOVQ	$<span class="number">10</span>, <span class="string">""</span>.c+<span class="number">40</span>(SP)</span><br><span class="line"><span class="number">0x0026</span> <span class="number">00038</span> (main.<span class="keyword">go</span>:<span class="number">11</span>)	MOVQ	$<span class="number">12</span>, <span class="string">""</span>.d+<span class="number">32</span>(SP)</span><br><span class="line"><span class="number">0x002f</span> <span class="number">00047</span> (main.<span class="keyword">go</span>:<span class="number">12</span>)	MOVQ	<span class="string">""</span>.c+<span class="number">40</span>(SP), AX</span><br><span class="line"><span class="number">0x0034</span> <span class="number">00052</span> (main.<span class="keyword">go</span>:<span class="number">12</span>)	MOVQ	AX, (SP)</span><br><span class="line"><span class="number">0x0038</span> <span class="number">00056</span> (main.<span class="keyword">go</span>:<span class="number">12</span>)	MOVQ	$<span class="number">12</span>, <span class="number">8</span>(SP)</span><br><span class="line"><span class="number">0x0041</span> <span class="number">00065</span> (main.<span class="keyword">go</span>:<span class="number">12</span>)	CALL	<span class="string">""</span>.add(SB)</span><br><span class="line"><span class="number">0x0046</span> <span class="number">00070</span> (main.<span class="keyword">go</span>:<span class="number">13</span>)	MOVQ	<span class="number">48</span>(SP), BP</span><br><span class="line"><span class="number">0x004b</span> <span class="number">00075</span> (main.<span class="keyword">go</span>:<span class="number">13</span>)	ADDQ	$<span class="number">56</span>, SP</span><br><span class="line"><span class="number">0x004f</span> <span class="number">00079</span> (main.<span class="keyword">go</span>:<span class="number">13</span>)	RET</span><br><span class="line"><span class="comment">// ... omit some lines：栈分裂epilog</span></span><br></pre></td></tr></table></figure>
+
+<p>构造如下图：</p>
+<p><img src="/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/golang%E8%B0%83%E7%94%A8%E6%A0%88%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E5%AE%9E%E4%BE%8B%E4%B9%8Bmain%E5%B8%A7.png" alt></p>
+<h2 id="分析add帧"><a href="#分析add帧" class="headerlink" title="分析add帧"></a>分析add帧</h2><p>同样的道理可以得到add()函数的伪汇编代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">0x0000</span> <span class="number">00000</span> (main.<span class="keyword">go</span>:<span class="number">3</span>)	TEXT	<span class="string">""</span>.add(SB), NOSPLIT|ABIInternal, $<span class="number">16</span><span class="number">-32</span></span><br><span class="line"><span class="number">0x0000</span> <span class="number">00000</span> (main.<span class="keyword">go</span>:<span class="number">3</span>)	SUBQ	$<span class="number">16</span>, SP</span><br><span class="line"><span class="number">0x0004</span> <span class="number">00004</span> (main.<span class="keyword">go</span>:<span class="number">3</span>)	MOVQ	BP, <span class="number">8</span>(SP)</span><br><span class="line"><span class="number">0x0009</span> <span class="number">00009</span> (main.<span class="keyword">go</span>:<span class="number">3</span>)	LEAQ	<span class="number">8</span>(SP), BP</span><br><span class="line"><span class="comment">// ... omit some lines：GC相关</span></span><br><span class="line"><span class="number">0x000e</span> <span class="number">00014</span> (main.<span class="keyword">go</span>:<span class="number">3</span>)	MOVQ	$<span class="number">0</span>, <span class="string">""</span>.~r2+<span class="number">40</span>(SP)</span><br><span class="line"><span class="number">0x0017</span> <span class="number">00023</span> (main.<span class="keyword">go</span>:<span class="number">3</span>)	MOVQ	$<span class="number">0</span>, <span class="string">""</span>.~r3+<span class="number">48</span>(SP)</span><br><span class="line"><span class="number">0x0020</span> <span class="number">00032</span> (main.<span class="keyword">go</span>:<span class="number">4</span>)	MOVQ	$<span class="number">1</span>, <span class="string">""</span>.tmp(SP)</span><br><span class="line"><span class="number">0x0028</span> <span class="number">00040</span> (main.<span class="keyword">go</span>:<span class="number">5</span>)	MOVQ	<span class="string">""</span>.a+<span class="number">24</span>(SP), AX</span><br><span class="line"><span class="number">0x002d</span> <span class="number">00045</span> (main.<span class="keyword">go</span>:<span class="number">5</span>)	INCQ	AX</span><br><span class="line"><span class="number">0x0030</span> <span class="number">00048</span> (main.<span class="keyword">go</span>:<span class="number">5</span>)	MOVQ	AX, <span class="string">""</span>.tmp(SP)</span><br><span class="line"><span class="number">0x0034</span> <span class="number">00052</span> (main.<span class="keyword">go</span>:<span class="number">6</span>)	MOVQ	<span class="string">""</span>.a+<span class="number">24</span>(SP), AX</span><br><span class="line"><span class="number">0x0039</span> <span class="number">00057</span> (main.<span class="keyword">go</span>:<span class="number">6</span>)	ADDQ	<span class="string">""</span>.b+<span class="number">32</span>(SP), AX</span><br><span class="line"><span class="number">0x003e</span> <span class="number">00062</span> (main.<span class="keyword">go</span>:<span class="number">6</span>)	MOVQ	AX, <span class="string">""</span>.~r2+<span class="number">40</span>(SP)</span><br><span class="line"><span class="number">0x0043</span> <span class="number">00067</span> (main.<span class="keyword">go</span>:<span class="number">6</span>)	MOVQ	<span class="string">""</span>.a+<span class="number">24</span>(SP), AX</span><br><span class="line"><span class="number">0x0048</span> <span class="number">00072</span> (main.<span class="keyword">go</span>:<span class="number">6</span>)	SUBQ	<span class="string">""</span>.b+<span class="number">32</span>(SP), AX</span><br><span class="line"><span class="number">0x004d</span> <span class="number">00077</span> (main.<span class="keyword">go</span>:<span class="number">6</span>)	MOVQ	AX, <span class="string">""</span>.~r3+<span class="number">48</span>(SP)</span><br><span class="line"><span class="number">0x0052</span> <span class="number">00082</span> (main.<span class="keyword">go</span>:<span class="number">6</span>)	MOVQ	<span class="number">8</span>(SP), BP</span><br><span class="line"><span class="number">0x0057</span> <span class="number">00087</span> (main.<span class="keyword">go</span>:<span class="number">6</span>)	ADDQ	$<span class="number">16</span>, SP</span><br><span class="line"><span class="number">0x005b</span> <span class="number">00091</span> (main.<span class="keyword">go</span>:<span class="number">6</span>)	RET</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>关于<code>ABIInternal</code>，是实验版本的calling convention，详见相关的<a href="https://github.com/golang/proposal/blob/master/design/27539-internal-abi.md" target="_blank" rel="noopener"><code>golang proposal</code></a></p>
+</blockquote>
+<p><strong>call指令</strong>：call指令会做两件事情，首先会把当前指令位置push到栈顶（即当前<code>RIP</code>寄存器的值），然后会无条件跳转到参数指定的代码位置。<br><strong>ret指令</strong>：ret指令也会做两件事情，首先会弹出栈顶元素，然后会无条件跳转到弹出的元素值指定的代码位置</p>
+<blockquote>
+<p>遇到类似””.tmp(SP)这种符号，可以通过<code>go tool objdump</code>来翻译出符号地址</p>
+</blockquote>
+<p>分析如下图</p>
+<p><img src="/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/golang%E8%B0%83%E7%94%A8%E6%A0%88%E5%AE%8C%E6%95%B4%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80%E5%AE%9E%E4%BE%8B.png" alt></p>
+<h1 id="goroutine栈管理机制"><a href="#goroutine栈管理机制" class="headerlink" title="goroutine栈管理机制"></a>goroutine栈管理机制</h1><p>前面说了那么多，可以归类为探究goroutine的栈内存布局（<code>stack memory layout</code>）。现在可以把轮廓调大一点，探究下goroutine的栈管理的理念和实现，也就是常常听到的<code>连续栈</code>。</p>
+<p>golang的一个最重要的特性就是令人瞩目的<code>goroutine</code>，非常轻量，廉价（开销极低），便捷（通信简单）。<code>goroutine</code>是如何做到单机上万个并存的，其内存管理是至关重要的一点。</p>
+<p>Golang在栈管理上，类似于其它很多语言的管理方式，但是在实现细节上又有很多不同。</p>
+<h2 id="C语言栈管理方式"><a href="#C语言栈管理方式" class="headerlink" title="C语言栈管理方式"></a>C语言栈管理方式</h2><p>在C语言中，当要启动一个线程时，标准库会分配好一块内存作为该线程的栈。并告诉内核这块内存的位置，以便让内核处理线程执行。当这块内存区域不足时，例如执行一个高度递归的函数，程序就会执行错误。</p>
+<p>要想解决这个问题，可以有2种办法</p>
+<ol>
+<li><p>修改标准库代码，将栈内存块的分配尺寸改大一点，但是这样以后所有的线程启动时都会分配更大的内存。</p>
+</li>
+<li><p>根据不同的线程分配不同的内存块，但是这样每次创建线程时，都要确定好需要的内存大小，很麻烦也很难确定。</p>
+</li>
+</ol>
+<h2 id="Golang栈管理方式"><a href="#Golang栈管理方式" class="headerlink" title="Golang栈管理方式"></a>Golang栈管理方式</h2><p>Golang <code>runtime</code>则尝试为<code>goroutine</code>按需分配栈空间，不需要程序员去决定。以前用<strong>分段栈</strong>实现，现在的Go版本则用<strong>连续栈</strong>实现。</p>
+<h3 id="分段栈"><a href="#分段栈" class="headerlink" title="分段栈"></a>分段栈</h3><p>在以前的分段栈方式下，当一个<code>goroutine</code>创建时，运行时会分配<strong>8KB</strong>区域作为栈供协程使用。</p>
+<p>但是在每个goroutine函数入口处都会被插入一小段前置代码，它能够检查栈空间是否被消耗殆尽，如果用完了，它会调用<code>morestack()</code>函数来扩展空间。</p>
+<p><code>morestack()</code>函数机理，即分段栈扩张机理：为栈空间分配一块新的内存区域。然后在这个新栈的底部的结构体中填充关于该栈的各种数据，包括刚刚来自的旧栈的地址。当得到了一个新的栈分段之后，通过重试导致用完栈的函数来重启<code>goroutine</code>。<strong>这就被称为栈的分裂</strong></p>
+<p><img src="/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/Golang%E5%88%86%E6%AE%B5%E6%A0%88%E5%9B%9E%E6%BA%AF%E6%9C%BA%E7%90%86.png" alt></p>
+<p>分段栈回溯机理：如上图所示，新栈会为<code>lessstack()</code>插入一个栈条目。这个函数并不实际显式调用。它会在耗尽旧栈的那个函数返回的时候被设置，例如图中的<code>Foobar()</code>，当<code>Foobar()</code>运行完毕返回时，会返回到<code>lessstack()</code>中，它会查询栈底部的结构体信息，并调整栈指针(<code>SP</code>)，以便能够回溯到上一个栈分段。然后，就可以释放新栈段空间了。</p>
+<h3 id="分段栈的问题-热点分裂"><a href="#分段栈的问题-热点分裂" class="headerlink" title="分段栈的问题: 热点分裂"></a>分段栈的问题: 热点分裂</h3><p>分段栈机制使得栈可以按需扩张收缩。而程序员不需要在意栈的大小。</p>
+<p>但是分段栈也有瑕疵。<strong>收缩栈是一个相对昂贵的操作</strong>。如果是在一个循环中分裂栈情况更明显。函数会增长栈，分裂栈，返回栈，并且释放栈分段。如果是在循环里面做这些操作，那么将会付出很大的开销。例如循环一次经历了这些过程，当下一次循环时栈又被耗尽，又得重新分配栈分段，然后又被释放掉，周而复始，循环往复，开销就会巨大。</p>
+<p>这就是熟知的 <strong><code>hot split problem</code></strong> （热点分裂问题）。这是Golang开发组切换到新的栈管理方式的主要原因，新方式称为<strong>栈拷贝</strong>。</p>
+<h3 id="连续栈（栈拷贝）"><a href="#连续栈（栈拷贝）" class="headerlink" title="连续栈（栈拷贝）"></a>连续栈（栈拷贝）</h3><p>从GO1.4之后，开始正式使用了连续栈机制。</p>
+<p>栈拷贝开始很像分段栈。协程运行，使用栈空间，当栈将要耗尽时，触发相同的栈溢出检测。</p>
+<p>但是，不像分段栈里有一个回溯链接，<strong>栈拷贝的方式则是创建了一个新的分段，它是旧栈的两倍大小，并且把旧栈完全拷贝进来。</strong> 这样当栈收缩为旧栈大小时，<code>runtime</code>不会做任何事情。收缩变成了一个<code>no op</code>免费操作。此外，当栈再次增长时，<code>runtime</code>也不需要做任何事情，重新使用刚才扩容的空间即可。</p>
+<h3 id="栈是如何拷贝的"><a href="#栈是如何拷贝的" class="headerlink" title="栈是如何拷贝的"></a>栈是如何拷贝的</h3><p>不像听起来那么容易，其实拷贝栈是一项艰巨的任务。由于栈中的变量在Golang中能够获取其地址，因此最终会出现指向栈的指针。而如果轻易拷贝移动栈，任何指向旧栈的指针都会失效。</p>
+<p>而Golang的内存安全机制规定，任何能够指向栈的指针都必须存在于栈中。</p>
+<p>所以可以通过垃圾收集器协助栈拷贝，因为垃圾收集器需要知道哪些指针可以进行回收，所以可以查到栈上的哪些部分是指针，当进行栈拷贝时，会更新指针信息指向新目标，以及它相关的所有指针。</p>
+<p>但是，<code>runtime</code>中大量核心调度函数和GC核心都是用C语言写的，这些函数都获取不到指针信息，那么它们就无法复制。这种都会在一个特殊的栈中执行，并且由<code>runtime</code>开发者分别定义栈尺寸。</p>
+<h2 id="还是从汇编角度剖析连续栈的实现"><a href="#还是从汇编角度剖析连续栈的实现" class="headerlink" title="还是从汇编角度剖析连续栈的实现"></a>还是从汇编角度剖析连续栈的实现</h2><p>在机器架构层面，很多关于函数的公用操作都会被提取为固定代码，在函数运行时插入到代码片段的前后部分中，其中函数代码前插入汇编，称为<code>prolog</code>，一般只会有一个<code>prolog</code>。在函数代码后插入汇编，称为<code>epilog</code>，一般可以有多个<code>epilog</code>。这个起名有点像写小说的“序章”和“后记”。</p>
+<p><strong>golang就是用<code>prolog + epilog</code>的方式来实现连续栈的检测和复制的。</strong></p>
+<p>还是上面的<code>main.go</code>程序，这次重点看下关于连续栈的汇编代码</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">0x0000</span> <span class="number">00000</span> (main.<span class="keyword">go</span>:<span class="number">9</span>)	TEXT	<span class="string">""</span>.main(SB), ABIInternal, $<span class="number">56</span><span class="number">-0</span></span><br><span class="line"><span class="number">0x0000</span> <span class="number">00000</span> (main.<span class="keyword">go</span>:<span class="number">9</span>)	MOVQ	(TLS), CX</span><br><span class="line"><span class="number">0x0009</span> <span class="number">00009</span> (main.<span class="keyword">go</span>:<span class="number">9</span>)	CMPQ	SP, <span class="number">16</span>(CX)</span><br><span class="line"><span class="number">0x000d</span> <span class="number">00013</span> (main.<span class="keyword">go</span>:<span class="number">9</span>)	JLS	<span class="number">80</span></span><br><span class="line"><span class="comment">// ... omit function body code</span></span><br><span class="line"><span class="number">0x0050</span> <span class="number">00080</span> (main.<span class="keyword">go</span>:<span class="number">9</span>)	CALL	runtime.morestack_noctxt(SB)</span><br></pre></td></tr></table></figure>
+
+<h2 id="栈溢出检测实现"><a href="#栈溢出检测实现" class="headerlink" title="栈溢出检测实现"></a>栈溢出检测实现</h2><p><code>TLS</code>也是一个伪寄存器，表示的是<code>thread-local storage</code>，它存放了<code>g</code>结构体。并且只能被载入到另一个寄存器中。16(TLS)正好指向了<code>g-&gt;stackguard</code>，准确的说在我们这个程序中，它指向了<code>g-&gt;stackguard0</code>。而这就是<code>prolog</code>中检测栈溢出的精髓：每一个goroutine的<code>g-&gt;stackguard0</code>都被设置为指向<code>stack.lo + StackGuard</code>的位置。所以每一个函数在真正执行前都会将SP和stackguard0进行比较。</p>
+<p><strong>栈溢出发生在整个函数执行前就能被侦测到，而不是函数内某条语句执行时</strong></p>
+<blockquote>
+<p>结构体<code>g</code>属于Golang GMP调度的范畴，它详细定义了golang栈的各种参数。</p>
+</blockquote>
+<p><img src="/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/goroutine%E6%A0%88StackGuard.png" alt></p>
+<blockquote>
+<p>图片来自于：<a href="https://kirk91.github.io/posts/2d571d09/" target="_blank" rel="noopener">https://kirk91.github.io/posts/2d571d09/</a></p>
+</blockquote>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// runtime/runtime2.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> stack <span class="keyword">struct</span> &#123;</span><br><span class="line">	lo <span class="keyword">uintptr</span> <span class="comment">// 64位机器上占8字节</span></span><br><span class="line">	hi <span class="keyword">uintptr</span> <span class="comment">// 64位机器上占8字节</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> g <span class="keyword">struct</span> &#123;</span><br><span class="line">	stack       stack   </span><br><span class="line">	stackguard0 <span class="keyword">uintptr</span> <span class="comment">// 用于golang的栈溢出检测</span></span><br><span class="line">	stackguard1 <span class="keyword">uintptr</span> <span class="comment">// 用于clang的栈溢出检测</span></span><br></pre></td></tr></table></figure>
+
+<p>下面是栈溢出检测相关的一些底层实现细节</p>
+<h3 id="StackGuard-amp-StackSmall-amp-StackBig-amp-StackLimit-amp-StackPreempt"><a href="#StackGuard-amp-StackSmall-amp-StackBig-amp-StackLimit-amp-StackPreempt" class="headerlink" title="StackGuard &amp; StackSmall &amp; StackBig &amp; StackLimit &amp; StackPreempt"></a>StackGuard &amp; StackSmall &amp; StackBig &amp; StackLimit &amp; StackPreempt</h3><p>这些字段均定义在<code>runtime/stack.go</code>中，但是在<code>cmd/internal/objabi</code>中都会重复定义一次，提供给内部各模块使用。</p>
+<p><code>StackGuard = 880*sys.StackGuardMultiplier + _StackSystem</code>：栈溢出门槛，表示在栈最低位之上StackGuard个字节是不溢出的。</p>
+<p><code>StackSmall = 128</code>：主要用于小函数优化，允许函数可以突破<code>StackGuard</code>防线后，再向下占用最多<code>StackSmall</code>个字节。</p>
+<p><code>StackBig = 4096</code>：则主要针对于大函数优化，对于这样的函数帧，必须启用另外一套栈溢出检测代码，会将<code>StackPreempt</code>赋值给<code>StackGuard</code>，保证该函数帧必然会栈溢出。</p>
+<p><code>StackPreempt = uintptrMask &amp; -1314</code>：是一个必然大于所有<code>SP</code>的值，16进制表示为<code>0xFFFFFADE</code>，它是一个关于golang抢占调度范畴的参数，这个值赋予<code>StackGuard</code>，可以保证栈必然分裂，而<code>morestack()</code>函数在创建新栈时，如果发现<code>stackguard = StackPreempt</code>，则会触发调度。</p>
+<p><code>StackLimit = _StackGuard - _StackSystem - _StackSmall</code>：这就是栈溢出检测时，栈低位低于<code>StackSmall</code>剩余的那部分空间，这段空间表示了一个<code>NOSPLIT</code>拒绝栈溢出检测的函数最多还能使用的栈空间，例如留给defer函数使用。</p>
+<p>因此，栈溢出检测逻辑如下图所示：</p>
+<p><img src="/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/golang%E6%A0%88%E6%BA%A2%E5%87%BA%E6%A3%80%E6%B5%8B%E9%80%BB%E8%BE%91.png" alt></p>
+<p>所有的栈溢出检测代码都在<code>cmd/internal/obj</code>包中，例如对于x86机器架构，对应代码为：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// cmd/internal/obj/x86/obj6.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">stacksplit</span><span class="params">()</span></span> &#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="NOSPLIT的自动检测"><a href="#NOSPLIT的自动检测" class="headerlink" title="NOSPLIT的自动检测"></a>NOSPLIT的自动检测</h3><p>我们在编写函数时，编译出汇编代码会发现，在一些函数的执行代码中，编译器很智能的加上了<code>NOSPLIT</code>标记。这个标记可以禁用栈溢出检测<code>prolog</code>，即该函数运行不会导致栈分裂，由于不需要再照常执行栈溢出检测，所以会提升一些函数性能。这是如何做到的</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// cmd/internal/obj/s390x/objz.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> p.Mark&amp;LEAF != <span class="number">0</span> &amp;&amp; autosize &lt; objabi.StackSmall &#123;</span><br><span class="line">	<span class="comment">// A leaf function with a small stack can be marked</span></span><br><span class="line">	<span class="comment">// NOSPLIT, avoiding a stack check.</span></span><br><span class="line">	p.From.Sym.Set(obj.AttrNoSplit, <span class="literal">true</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>当函数处于调用链的叶子节点，且栈帧小于StackSmall字节时，则自动标记为NOSPLIT。 x86架构处理与之类似</strong></p>
+<p>自动标记为NOSPLIT的函数，链接器就会知道该函数最多还会使用StackLimit字节空间，不需要栈分裂。</p>
+<p><strong>备注：用户也可以使用<code>//go:nosplit</code>强制指定NOSPLIT属性，但如果函数实际真的溢出了，则会在编译期就报错<code>nosplit stack overflow</code></strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ GOOS=linux GOARCH=amd64 go build -gcflags=<span class="string">"-N -l"</span> main.go</span><br><span class="line"><span class="comment"># command-line-arguments</span></span><br><span class="line">main.add: nosplit stack overflow</span><br><span class="line">	744	assumed on entry to main.add (nosplit)</span><br><span class="line">	-79264	after main.add (nosplit) uses 80008</span><br></pre></td></tr></table></figure>
+
+<h2 id="栈拷贝实现"><a href="#栈拷贝实现" class="headerlink" title="栈拷贝实现"></a>栈拷贝实现</h2><p>一旦检查到栈溢出，就会<code>call runtime.morestack_noctxt(SB)</code>执行栈拷贝功能。这包含新栈分配+旧栈拷贝两个部分。</p>
+<h1 id="顺带说一下"><a href="#顺带说一下" class="headerlink" title="顺带说一下"></a>顺带说一下</h1><p>golang的很多特性，都有经典的设计文档，在极早期都已经编写出来，实现的时候都是依照该设计理念执行的，几乎所有的设计文档都托管在<code>google doc</code>里面，有心的话可以详细google。</p>
+<h1 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h1><ul>
+<li><p><a href="https://cseweb.ucsd.edu/classes/sp10/cse141/pdf/02/S01_x86_64.key.pdf" target="_blank" rel="noopener">https://cseweb.ucsd.edu/classes/sp10/cse141/pdf/02/S01_x86_64.key.pdf</a></p>
+</li>
+<li><p><a href="https://en.wikibooks.org/wiki/X86_Assembly/X86_Architecture" target="_blank" rel="noopener">https://en.wikibooks.org/wiki/X86_Assembly/X86_Architecture</a></p>
+</li>
+<li><p><a href="https://software.intel.com/en-us/articles/introduction-to-x64-assembly" target="_blank" rel="noopener">https://software.intel.com/en-us/articles/introduction-to-x64-assembly</a></p>
+</li>
+<li><p><a href="https://draveness.me/golang-function-call" target="_blank" rel="noopener">https://draveness.me/golang-function-call</a></p>
+</li>
+<li><p><a href="https://en.wikipedia.org/wiki/Subroutine" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Subroutine</a></p>
+</li>
+<li><p><a href="https://en.wikipedia.org/wiki/Call_stack#STACK-FRAME" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Call_stack#STACK-FRAME</a></p>
+</li>
+<li><p><a href="https://gist.github.com/cpq/8598782" target="_blank" rel="noopener">https://gist.github.com/cpq/8598782</a></p>
+</li>
+<li><p><a href="http://tcm.computerhistory.org/ComputerTimeline/Chap37_intel_CS2.pdf" target="_blank" rel="noopener">http://tcm.computerhistory.org/ComputerTimeline/Chap37_intel_CS2.pdf</a></p>
+</li>
+<li><p><a href="https://www.quora.com/What-is-the-difference-between-movq-and-movl-assembly-instruction" target="_blank" rel="noopener">https://www.quora.com/What-is-the-difference-between-movq-and-movl-assembly-instruction</a></p>
+</li>
+<li><p><a href="https://blog.csdn.net/kennyrose/article/details/7575952" target="_blank" rel="noopener">https://blog.csdn.net/kennyrose/article/details/7575952</a></p>
+</li>
+<li><p><a href="https://golang.org/doc/asm" target="_blank" rel="noopener">https://golang.org/doc/asm</a></p>
+</li>
+<li><p><a href="https://github.com/golang/proposal/blob/master/design/27539-internal-abi.md" target="_blank" rel="noopener">https://github.com/golang/proposal/blob/master/design/27539-internal-abi.md</a></p>
+</li>
+<li><p><a href="http://xargin.com/go-and-plan9-asm/" target="_blank" rel="noopener">http://xargin.com/go-and-plan9-asm/</a></p>
+</li>
+<li><p><a href="http://www.cs.virginia.edu/~evans/cs216/guides/x86.html" target="_blank" rel="noopener">http://www.cs.virginia.edu/~evans/cs216/guides/x86.html</a></p>
+</li>
+<li><p><a href="https://www.tenouk.com/Bufferoverflowc/Bufferoverflow2a.html" target="_blank" rel="noopener">https://www.tenouk.com/Bufferoverflowc/Bufferoverflow2a.html</a></p>
+</li>
+<li><p><a href="https://softwareengineering.stackexchange.com/questions/342525/difference-between-assembly-code-and-disassembly-listing" target="_blank" rel="noopener">https://softwareengineering.stackexchange.com/questions/342525/difference-between-assembly-code-and-disassembly-listing</a></p>
+</li>
+<li><p><a href="https://blog.cloudflare.com/how-stacks-are-handled-in-go/" target="_blank" rel="noopener">https://blog.cloudflare.com/how-stacks-are-handled-in-go/</a></p>
+</li>
+<li><p><a href="https://docs.microsoft.com/en-us/cpp/build/prolog-and-epilog?view=vs-2019" target="_blank" rel="noopener">https://docs.microsoft.com/en-us/cpp/build/prolog-and-epilog?view=vs-2019</a></p>
+</li>
+<li><p><a href="https://kirk91.github.io/posts/2d571d09/" target="_blank" rel="noopener">https://kirk91.github.io/posts/2d571d09/</a></p>
+</li>
+<li><p><a href="https://zhuanlan.zhihu.com/p/27590998" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/27590998</a></p>
+</li>
+<li><p><a href="https://www.jianshu.com/p/469d0c7a7936" target="_blank" rel="noopener">https://www.jianshu.com/p/469d0c7a7936</a></p>
+</li>
+</ul>
+<h1 id="延伸阅读"><a href="#延伸阅读" class="headerlink" title="延伸阅读"></a>延伸阅读</h1><p>这里是相关话题的深入，值得读，但我还没读，罗列在此</p>
+<ul>
+<li><p><a href="https://eli.thegreenplace.net/2011/09/06/stack-frame-layout-on-x86-64" target="_blank" rel="noopener">https://eli.thegreenplace.net/2011/09/06/stack-frame-layout-on-x86-64</a> 作者<code>Eli Bendersky</code>目前在google AI，通晓编译器</p>
+</li>
+<li><p><a href="https://eli.thegreenplace.net/2011/02/04/where-the-top-of-the-stack-is-on-x86/" target="_blank" rel="noopener">https://eli.thegreenplace.net/2011/02/04/where-the-top-of-the-stack-is-on-x86/</a></p>
+</li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/06/25/hexo-next-升级迁移历程/" rel="next" title="hexo & next 升级迁移历程">
+                <i class="fa fa-chevron-left"></i> hexo & next 升级迁移历程
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/06/27/golang汇编语言/" rel="prev" title="golang汇编语言">
+                golang汇编语言 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#机器架构基础"><span class="nav-number">2.</span> <span class="nav-text">机器架构基础</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#x86寄存器"><span class="nav-number">2.1.</span> <span class="nav-text">x86寄存器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#golang没有采用x86-64架构函数传参优化"><span class="nav-number">2.1.1.</span> <span class="nav-text">golang没有采用x86-64架构函数传参优化</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#x86-64二进制单元"><span class="nav-number">2.2.</span> <span class="nav-text">x86-64二进制单元</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#栈是什么，栈帧是什么，堆又是什么"><span class="nav-number">2.3.</span> <span class="nav-text">栈是什么，栈帧是什么，堆又是什么</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#SP和FP的用法原理"><span class="nav-number">2.3.1.</span> <span class="nav-text">SP和FP的用法原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FP实践习惯"><span class="nav-number">2.3.2.</span> <span class="nav-text">FP实践习惯</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#栈为什么是向下生长"><span class="nav-number">2.4.</span> <span class="nav-text">栈为什么是向下生长</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#汇编语法"><span class="nav-number">2.5.</span> <span class="nav-text">汇编语法</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#OK，开始剖析Golang调用栈帧内存布局"><span class="nav-number">3.</span> <span class="nav-text">OK，开始剖析Golang调用栈帧内存布局</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#从golang-runtime源码获取指导"><span class="nav-number">3.1.</span> <span class="nav-text">从golang runtime源码获取指导</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#golang-工具链"><span class="nav-number">3.2.</span> <span class="nav-text">golang 工具链</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#来个实例"><span class="nav-number">3.3.</span> <span class="nav-text">来个实例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分析main帧"><span class="nav-number">3.4.</span> <span class="nav-text">分析main帧</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分析add帧"><span class="nav-number">3.5.</span> <span class="nav-text">分析add帧</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#goroutine栈管理机制"><span class="nav-number">4.</span> <span class="nav-text">goroutine栈管理机制</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#C语言栈管理方式"><span class="nav-number">4.1.</span> <span class="nav-text">C语言栈管理方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Golang栈管理方式"><span class="nav-number">4.2.</span> <span class="nav-text">Golang栈管理方式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#分段栈"><span class="nav-number">4.2.1.</span> <span class="nav-text">分段栈</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#分段栈的问题-热点分裂"><span class="nav-number">4.2.2.</span> <span class="nav-text">分段栈的问题: 热点分裂</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#连续栈（栈拷贝）"><span class="nav-number">4.2.3.</span> <span class="nav-text">连续栈（栈拷贝）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#栈是如何拷贝的"><span class="nav-number">4.2.4.</span> <span class="nav-text">栈是如何拷贝的</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#还是从汇编角度剖析连续栈的实现"><span class="nav-number">4.3.</span> <span class="nav-text">还是从汇编角度剖析连续栈的实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#栈溢出检测实现"><span class="nav-number">4.4.</span> <span class="nav-text">栈溢出检测实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#StackGuard-amp-StackSmall-amp-StackBig-amp-StackLimit-amp-StackPreempt"><span class="nav-number">4.4.1.</span> <span class="nav-text">StackGuard &amp; StackSmall &amp; StackBig &amp; StackLimit &amp; StackPreempt</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#NOSPLIT的自动检测"><span class="nav-number">4.4.2.</span> <span class="nav-text">NOSPLIT的自动检测</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#栈拷贝实现"><span class="nav-number">4.5.</span> <span class="nav-text">栈拷贝实现</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#顺带说一下"><span class="nav-number">5.</span> <span class="nav-text">顺带说一下</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考链接"><span class="nav-number">6.</span> <span class="nav-text">参考链接</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#延伸阅读"><span class="nav-number">7.</span> <span class="nav-text">延伸阅读</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

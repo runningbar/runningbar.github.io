@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  助记词概述这是来自于BIP-39的提案，主要是定义了助记词的实现标准，在HD钱包中，可以派生一切的来源是最初的种子，而种子是很难备份并携带的，所以这个提案就提出了一种方法来方便的备份种子 – 助记词，由助记词可以生成种子。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分层确定性钱包前传-可生成确定密钥的助记词">
+<meta property="og:url" content="http://www.huamo.online/2018/08/20/分层确定性钱包前传-可生成确定密钥的助记词/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  助记词概述这是来自于BIP-39的提案，主要是定义了助记词的实现标准，在HD钱包中，可以派生一切的来源是最初的种子，而种子是很难备份并携带的，所以这个提案就提出了一种方法来方便的备份种子 – 助记词，由助记词可以生成种子。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.972Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="分层确定性钱包前传-可生成确定密钥的助记词">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  助记词概述这是来自于BIP-39的提案，主要是定义了助记词的实现标准，在HD钱包中，可以派生一切的来源是最初的种子，而种子是很难备份并携带的，所以这个提案就提出了一种方法来方便的备份种子 – 助记词，由助记词可以生成种子。">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2018/08/20/分层确定性钱包前传-可生成确定密钥的助记词/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>分层确定性钱包前传-可生成确定密钥的助记词 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2018/08/20/分层确定性钱包前传-可生成确定密钥的助记词/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">分层确定性钱包前传-可生成确定密钥的助记词
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-08-20 19:18:10" itemprop="dateCreated datePublished" datetime="2018-08-20T19:18:10+08:00">2018-08-20</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/ethereum/" itemprop="url" rel="index"><span itemprop="name">ethereum</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h1 id="助记词"><a href="#助记词" class="headerlink" title="助记词"></a>助记词</h1><h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>这是来自于<a href="https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki" target="_blank" rel="noopener">BIP-39</a>的提案，主要是定义了助记词的实现标准，在HD钱包中，可以派生一切的来源是最初的种子，而种子是很难备份并携带的，所以这个提案就提出了一种方法来方便的备份种子 – <strong>助记词</strong>，由助记词可以生成种子。</p>
+<a id="more"></a>
+
+<p>助记词是一组容易记住的单词，它可以用来生成确定性钱包（的种子）。</p>
+<p>这个提案包含2个部分：生成助记词，将其转化为一个二进制种子。这个种子后面可以用于生成符合BIP32规范的确定性钱包。</p>
+<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>相对于原生二进制或者十六进制表达的钱包种子，一个助记词对于人们更加友好。它可以方便的记录在纸上或者在电话中说出来。</p>
+<p><strong>特别值得说明一点的是：这篇文章是在介绍将计算机生成的随机数，转化成人类可读的记法，本质上，它还是由计算机生成的。而不是反过来，将人类自己想出来的语句，转化成一个钱包种子（这个就是广为人知的脑钱包）。</strong></p>
+<h2 id="生成助记词"><a href="#生成助记词" class="headerlink" title="生成助记词"></a>生成助记词</h2><p>助记词必须以32位倍数的随机序列（熵）进行编码，熵越大安全性越好，但是助记词长度也会随之增加。将初始随机序列长度记为<code>ENT</code>。允许的ENT长度为128 - 256位。</p>
+<p>首先，一个长度为ENT位的初始序列（熵）生成。对其进行<code>SHA256</code>哈希，然后对哈希结果取前<code>ENT / 32</code>位数据生成一个校验和。将这个校验和结果追加到初始序列的尾部。（看了实现的代码，其实就是把前几位数据直接作为校验和，追加到尾部）</p>
+<p>接着，这些串联起来的位序列按11位为一组进行切分，所以每一组都编码了一个<code>0 ~ 2047</code>的整数，这个整数作为词汇表的索引。</p>
+<p>最终， 我们将这些整数转换为词语，并将它们连在一起构成一个助记词语句。</p>
+<p>下面的表格描述了初始序列长度<code>ENT</code>，校验和长度<code>CS</code>，以及生成的助记词长度<code>MS</code>之间的关系。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">CS = ENT / 32</span><br><span class="line">MS = (ENT + CS) / 11</span><br><span class="line"></span><br><span class="line">|  ENT  | CS | ENT+CS |  MS  |</span><br><span class="line">+-------+----+--------+------+</span><br><span class="line">|  128  |  4 |   132  |  12  |</span><br><span class="line">|  160  |  5 |   165  |  15  |</span><br><span class="line">|  192  |  6 |   198  |  18  |</span><br><span class="line">|  224  |  7 |   231  |  21  |</span><br><span class="line">|  256  |  8 |   264  |  24  |</span><br></pre></td></tr></table></figure>
+
+<h2 id="词汇表"><a href="#词汇表" class="headerlink" title="词汇表"></a>词汇表</h2><p>一个理想的词汇表有如下特点：</p>
+<ol>
+<li><p>精挑细选：只需要键入前4个字母，就可以在整个词汇表中明确锁定一个单词。</p>
+</li>
+<li><p>避免相似词汇： 像<code>build，built</code>， <code>woman, women</code>， 以及<code>quick, quickly</code>这样的单词对尽量避免，不仅使助记词难记，而且容易出错。</p>
+</li>
+<li><p>词汇表有序：对词汇表进行排序，以便有效查找，例如实现时可以使用二叉搜索而不是线性搜索。还可以允许使用前缀树便于压缩。</p>
+</li>
+</ol>
+<p>词汇表还可以包含当地字符，但是它们必须使用NFKD方式编码为UTF-8。</p>
+<h2 id="从助记词还原种子"><a href="#从助记词还原种子" class="headerlink" title="从助记词还原种子"></a>从助记词还原种子</h2><p>用户可以用密码保护助记词，如果密码不存在，则认为密码是<code>&quot;&quot;</code>。</p>
+<p>为了从助记词中生成二进制种子，我们使用了<code>PBKDF2</code>方法，传入助记词（用NFKD方式编码成了UTF-8），再传入<code>&quot;mnemonic&quot; + 密码</code>（也使用NFKD方式编码成UTF-8）作为盐。迭代次数设为2048，以及<code>HMAC-SHA512</code>作为伪随机函数。最后生成的密钥序列为512位长度（即64字节）。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewSeed</span><span class="params">(mnemonic <span class="keyword">string</span>, password <span class="keyword">string</span>)</span> []<span class="title">byte</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> pbkdf2.Key([]<span class="keyword">byte</span>(mnemonic), []<span class="keyword">byte</span>(<span class="string">"mnemonic"</span>+password), <span class="number">2048</span>, <span class="number">64</span>, sha512.New)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个密钥序列即为种子，后续可以用于符合BIP32规范的确定性钱包，或其它相似的钱包实现。</p>
+<p>这个助记词到种子的转化过程完全独立于助记词的生成。所以代码很简单，在句子结构方面也没有任何限制，用户也可以使用自己的词汇表，甚至实现另外一个全新的助记词生成算法（比如就是脑钱包那种自己随意写一段句子作为助记词）。</p>
+<p>虽然可以不用上面“生成助记词”部分描述的算法生成助记词，但是不建议这么做，而且程序<strong>必须</strong>要使用词汇表计算出助记词语句的校验和，如果发现无效则需要发出警告。</p>
+<h2 id="一些实现"><a href="#一些实现" class="headerlink" title="一些实现"></a>一些实现</h2><p>Go：<a href="https://github.com/tyler-smith/go-bip39" target="_blank" rel="noopener">https://github.com/tyler-smith/go-bip39</a></p>
+<h1 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h1><ul>
+<li><p><a href="https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki" target="_blank" rel="noopener">https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki</a></p>
+</li>
+<li><p>脑钱包：<a href="https://www.8btc.com/article/69127" target="_blank" rel="noopener">https://www.8btc.com/article/69127</a></p>
+</li>
+<li><p><a href="https://github.com/tyler-smith/go-bip39" target="_blank" rel="noopener">https://github.com/tyler-smith/go-bip39</a></p>
+</li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/07/30/Ethereum-ERC20规范/" rel="next" title="Ethereum ERC20规范">
+                <i class="fa fa-chevron-left"></i> Ethereum ERC20规范
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/11/12/Git-项目指向另一个远程仓库/" rel="prev" title="Git-项目指向另一个远程仓库">
+                Git-项目指向另一个远程仓库 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#助记词"><span class="nav-number">1.</span> <span class="nav-text">助记词</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#概述"><span class="nav-number">1.1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#背景"><span class="nav-number">1.2.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#生成助记词"><span class="nav-number">1.3.</span> <span class="nav-text">生成助记词</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#词汇表"><span class="nav-number">1.4.</span> <span class="nav-text">词汇表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#从助记词还原种子"><span class="nav-number">1.5.</span> <span class="nav-text">从助记词还原种子</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#一些实现"><span class="nav-number">1.6.</span> <span class="nav-text">一些实现</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考链接"><span class="nav-number">2.</span> <span class="nav-text">参考链接</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

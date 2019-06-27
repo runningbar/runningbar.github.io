@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  go-ethereum/whisper先从whipserv6看起。 Whisper定义Whisper代表了在以太坊网络中的一个隐秘(dark)通信接口，使用的是以太坊自有的P2P通信层。所谓dark，意思是没有可靠的方法可以来追踪数据包（见于Specs）">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Ethereum源码阅读笔记-whisper">
+<meta property="og:url" content="http://www.huamo.online/2018/04/11/Ethereum源码阅读笔记-whisper/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  go-ethereum/whisper先从whipserv6看起。 Whisper定义Whisper代表了在以太坊网络中的一个隐秘(dark)通信接口，使用的是以太坊自有的P2P通信层。所谓dark，意思是没有可靠的方法可以来追踪数据包（见于Specs）">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.967Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Ethereum源码阅读笔记-whisper">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  go-ethereum/whisper先从whipserv6看起。 Whisper定义Whisper代表了在以太坊网络中的一个隐秘(dark)通信接口，使用的是以太坊自有的P2P通信层。所谓dark，意思是没有可靠的方法可以来追踪数据包（见于Specs）">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2018/04/11/Ethereum源码阅读笔记-whisper/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Ethereum源码阅读笔记-whisper | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2018/04/11/Ethereum源码阅读笔记-whisper/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Ethereum源码阅读笔记-whisper
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2018-04-11 10:21:58" itemprop="dateCreated datePublished" datetime="2018-04-11T10:21:58+08:00">2018-04-11</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/ethereum/" itemprop="url" rel="index"><span itemprop="name">ethereum</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h1 id="go-ethereum-whisper"><a href="#go-ethereum-whisper" class="headerlink" title="go-ethereum/whisper"></a><code>go-ethereum/whisper</code></h1><p>先从<code>whipserv6</code>看起。</p>
+<h2 id="Whisper定义"><a href="#Whisper定义" class="headerlink" title="Whisper定义"></a><code>Whisper</code>定义</h2><p><code>Whisper</code>代表了在以太坊网络中的一个隐秘(<code>dark</code>)通信接口，使用的是以太坊自有的<code>P2P</code>通信层。所谓<code>dark</code>，意思是没有可靠的方法可以来追踪数据包（见于<a href="https://github.com/ethereum/wiki/wiki/Whisper#specs" target="_blank" rel="noopener"><strong>Specs</strong></a>）<a id="more"></a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// whisper/whisperv6/whisper.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Whisper <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// 协议描述和参数</span></span><br><span class="line">	protocol p2p.Protocol</span><br><span class="line">	<span class="comment">// 订阅功能安装的消息过滤器</span></span><br><span class="line">	filters  *Filters</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 私钥存储</span></span><br><span class="line">	privateKeys <span class="keyword">map</span>[<span class="keyword">string</span>]*ecdsa.PrivateKey</span><br><span class="line">	<span class="comment">// 对称密钥存储</span></span><br><span class="line">	symKeys     <span class="keyword">map</span>[<span class="keyword">string</span>][]<span class="keyword">byte</span></span><br><span class="line">	<span class="comment">// 和密钥存储相关的互斥锁           </span></span><br><span class="line">	keyMu       sync.RWMutex</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 互斥地同步消息和过期池</span></span><br><span class="line">	poolMu      sync.RWMutex</span><br><span class="line">	<span class="comment">// 当前由此节点跟踪的信封（envelopes）池</span></span><br><span class="line">	envelopes   <span class="keyword">map</span>[common.Hash]*Envelope</span><br><span class="line">	<span class="comment">// 消息过期池</span></span><br><span class="line">	expirations <span class="keyword">map</span>[<span class="keyword">uint32</span>]*set.SetNonTS</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 互斥地同步活跃节点集合</span></span><br><span class="line">	peerMu sync.RWMutex</span><br><span class="line">	<span class="comment">// 当前活跃节点的集合</span></span><br><span class="line">	peers  <span class="keyword">map</span>[*Peer]<span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 普通whisper消息的消息队列</span></span><br><span class="line">	messageQueue <span class="keyword">chan</span> *Envelope</span><br><span class="line">	<span class="comment">// 点对点消息的消息队列（不会再被做任何转发的消息）</span></span><br><span class="line">	p2pMsgQueue  <span class="keyword">chan</span> *Envelope</span><br><span class="line">	<span class="comment">// 用于温和的退出的channel</span></span><br><span class="line">	quit         <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 存储了配置项的设置信息，以便可以动态修改。</span></span><br><span class="line">	settings syncmap.Map</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 允许处理whisper相关消息的最大时长（以秒为单位）</span></span><br><span class="line">	syncAllowance <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 指示这个节点是否是纯粹的轻客户端（不转发任何消息）</span></span><br><span class="line">	lightClient <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 用于保护stats</span></span><br><span class="line">	statsMu sync.Mutex</span><br><span class="line">	<span class="comment">// whisper节点的统计信息</span></span><br><span class="line">	stats   Statistics</span><br><span class="line"></span><br><span class="line">	<span class="comment">// MailServer接口</span></span><br><span class="line">	mailServer MailServer</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Whisper节点的配置Config"><a href="#Whisper节点的配置Config" class="headerlink" title="Whisper节点的配置Config"></a><code>Whisper</code>节点的配置<code>Config</code></h2><p>由于新建一个<code>Whisper</code>实例，需要接收<code>Config</code>参数，所以先来看看<code>Config</code>的定义，见于<code>config.go</code>文件中。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// whisper/whisperv6/config.go</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Config描述了一个whisper节点的配置状态</span></span><br><span class="line"><span class="keyword">type</span> Config <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// 最大消息长度</span></span><br><span class="line">	MaxMessageSize     <span class="keyword">uint32</span>  <span class="string">`toml:",omitempty"`</span></span><br><span class="line">	<span class="comment">// 接受工作量证明的最小值</span></span><br><span class="line">	MinimumAcceptedPOW <span class="keyword">float64</span> <span class="string">`toml:",omitempty"`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里面提到了一个<code>MinimumAcceptedPOW</code>，是关于工作量证明的，我在<a href="https://github.com/ethereum/go-ethereum/wiki/Whisper-Overview#proof-of-work" target="_blank" rel="noopener">Proof of Work</a>找到了这个设计的初衷。</p>
+<blockquote>
+<p>之所以用到<code>POW</code>，主要是为了防止垃圾消息，也同样是为了缓解网络的压力。计算<code>POW</code>的成本可以理解为“你想让网络将你的消息存储一段时间（即<code>TTL</code>时间段），因此需要分配资源，那么你就需要为此支付价格”。所需的<code>POW</code>应该与消息大小和<code>TTL</code>成正比。</p>
+</blockquote>
+<p>代码中还提供了一个默认配置样例<code>DefaultConfig</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// whisper/whisperv6/config.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> DefaultConfig = Config&#123;</span><br><span class="line">	MaxMessageSize:     DefaultMaxMessageSize, <span class="comment">// uint32(1024 * 1024)</span></span><br><span class="line">	MinimumAcceptedPOW: DefaultMinimumPoW, <span class="comment">// 0.2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="新建一个Whisper客户端"><a href="#新建一个Whisper客户端" class="headerlink" title="新建一个Whisper客户端"></a>新建一个<code>Whisper</code>客户端</h2><p>搞明白了<code>Config</code>，开始新建一个<code>Whisper</code>客户端，<code>whisper.go</code>中的<code>New()</code>方法会新建一个<code>Whisper</code>客户端，该客户端可以在以太坊<code>P2P</code>网络中进行通信。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// whisper/whisperv6/whisper.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(cfg *Config)</span> *<span class="title">Whisper</span></span> &#123;</span><br><span class="line">	<span class="comment">// 如果传入的cfg是nil，则使用上面提到的DefaultConfig</span></span><br><span class="line">	<span class="keyword">if</span> cfg == <span class="literal">nil</span> &#123;</span><br><span class="line">		cfg = &amp;DefaultConfig</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 初始化Whisper结构体</span></span><br><span class="line">	whisper := &amp;Whisper&#123;</span><br><span class="line">		privateKeys:   <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]*ecdsa.PrivateKey),</span><br><span class="line">		symKeys:       <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>][]<span class="keyword">byte</span>),</span><br><span class="line">		envelopes:     <span class="built_in">make</span>(<span class="keyword">map</span>[common.Hash]*Envelope),</span><br><span class="line">		expirations:   <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">uint32</span>]*set.SetNonTS),</span><br><span class="line">		peers:         <span class="built_in">make</span>(<span class="keyword">map</span>[*Peer]<span class="keyword">struct</span>&#123;&#125;),</span><br><span class="line">		messageQueue:  <span class="built_in">make</span>(<span class="keyword">chan</span> *Envelope, messageQueueLimit),</span><br><span class="line">		p2pMsgQueue:   <span class="built_in">make</span>(<span class="keyword">chan</span> *Envelope, messageQueueLimit),</span><br><span class="line">		quit:          <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;),</span><br><span class="line">		<span class="comment">// 最长处理时间默认为10s</span></span><br><span class="line">		syncAllowance: DefaultSyncAllowance,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 使用NewFilters为这个whisper新建过滤器</span></span><br><span class="line">	whisper.filters = NewFilters(whisper)</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 将&lt;minPowIdx, cfg.MinimumAcceptedPOW&gt;放入settings内存中</span></span><br><span class="line">	whisper.settings.Store(minPowIdx, cfg.MinimumAcceptedPOW)</span><br><span class="line">	<span class="comment">// 将&lt;maxMsgSizeIdx, cfg.MaxMessageSize&gt;放入settings内存中</span></span><br><span class="line">	whisper.settings.Store(maxMsgSizeIdx, cfg.MaxMessageSize)</span><br><span class="line">	<span class="comment">// 指示消息队列是否溢出</span></span><br><span class="line">	whisper.settings.Store(overflowIdx, <span class="literal">false</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// p2p whisper子协议规则</span></span><br><span class="line">	whisper.protocol = p2p.Protocol&#123;</span><br><span class="line">		Name:    ProtocolName, <span class="comment">// "shh"</span></span><br><span class="line">		Version: <span class="keyword">uint</span>(ProtocolVersion), <span class="comment">// uint(uint64(6))</span></span><br><span class="line">		Length:  NumberOfMessageCodes, <span class="comment">// 128</span></span><br><span class="line">		<span class="comment">// 启动运行</span></span><br><span class="line">		Run:     whisper.HandlePeer,</span><br><span class="line">		<span class="comment">// 节点信息</span></span><br><span class="line">		NodeInfo: <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">interface</span></span>&#123;&#125; &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;&#123;</span><br><span class="line">				<span class="string">"version"</span>:        ProtocolVersionStr, <span class="comment">// "6.0"</span></span><br><span class="line">				<span class="comment">// 读取whisper.settings[maxMsgSizeIdx]</span></span><br><span class="line">				<span class="string">"maxMessageSize"</span>: whisper.MaxMessageSize(),</span><br><span class="line">				<span class="comment">// 读取whisper.settings[minPowIdx]</span></span><br><span class="line">				<span class="comment">// 如果为空或出错，则返回DefaultMinimumPoW，即0.2</span></span><br><span class="line">				<span class="string">"minimumPoW"</span>:     whisper.MinPow(),</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> whisper</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>总体来说，<code>New()</code>主要是创建了一个空的<code>whisper{}</code>结构体，并尽力初始化，比较重要的地方，就是初始化<code>whisper.protocol</code>子协议字段，这里面涉及到很多魔数。</p>
+<p>关于版本号<code>6</code>，<a href="https://github.com/ethereum/wiki/wiki/Whisper#considerations-for-defeating-traffic-analysis" target="_blank" rel="noopener"><strong>wiki</strong></a>上有这么一段话：</p>
+<blockquote>
+<p><code>Tor</code>系统有一个协议，可以在两个节点之间建立连接，但它们互相并不知道对方在哪里，这是用于隐藏服务的<a href="https://en.wikipedia.org/wiki/Rendezvous_protocol" target="_blank" rel="noopener">Rendezvous协议</a>。隐藏的服务（相当于<code>TCP/IP</code>中一个监听端口的服务）会选择随机数量的”介绍人”节点（我想，这个随机数量一般都是<code>6</code>）。为了做到这一点，它会和每一个介绍人都建立标准的3跳链（<code>3-hop chain</code>），当一个用户想和一个隐藏服务建立连接时，它们就会传播一个请求去连接与特定公钥相关的隐藏服务。</p>
+</blockquote>
+<p>关于消息代号数量<code>128</code>，<code>p2p.Protocol</code>结构体中的<code>Lenght</code>字段表示某一子协议中消息代号的总数量，而在<code>whisper/whisperv6/doc.go</code>的常量表中可以看到<strong>根据<a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-627.md" target="_blank" rel="noopener"><code>EIP-627</code></a>提案，<code>whisper</code>协议的消息代号共有<code>128</code>种</strong>，故为<code>128</code></p>
+<h2 id="HandlePeer：发现新节点后做什么"><a href="#HandlePeer：发现新节点后做什么" class="headerlink" title="HandlePeer：发现新节点后做什么"></a><code>HandlePeer</code>：发现新节点后做什么</h2><p>在新建<code>whisper</code>客户端时，<code>whisper.protocol</code>结构体用<code>HandlerPeer()</code>填充了<code>Run</code>字段，当和一个节点协商该协议时，会在一个新的<code>goroutine</code>上调用<code>Run</code>代表的方法。在<code>whisper</code>这里，当<code>whisper</code>子协议连接被协商的时候，下面的<code>P2P</code>层会调用<code>HandlePeer</code>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// whisper/whisperv6/whisper.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(whisper *Whisper)</span> <span class="title">HandlePeer</span><span class="params">(peer *p2p.Peer, rw p2p.MsgReadWriter)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// 新建一个whisper peer实例，接下来开始追踪它</span></span><br><span class="line">	whisperPeer := newPeer(whisper, peer, rw)</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 同步的将这个peer实例添加到追踪列表中</span></span><br><span class="line">	whisper.peerMu.Lock()</span><br><span class="line">	whisper.peers[whisperPeer] = <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">	whisper.peerMu.Unlock()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 当退出时，将该peer从追踪列表中删除</span></span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		whisper.peerMu.Lock()</span><br><span class="line">		<span class="built_in">delete</span>(whisper.peers, whisperPeer)</span><br><span class="line">		whisper.peerMu.Unlock()</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 握手，状态更新</span></span><br><span class="line">	<span class="keyword">if</span> err := whisperPeer.handshake(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	whisperPeer.start() <span class="comment">// 启动通信</span></span><br><span class="line">	<span class="keyword">defer</span> whisperPeer.stop() <span class="comment">// 退出时停止通信</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> whisper.runMessageLoop(whisperPeer, rw) <span class="comment">// 开始消息循环处理</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里主要是在发现一个新的节点时，<code>whisper</code>协议所做的操作，大部分操作都是和<code>Peer</code>有关。下面就来看看<code>whisper</code>的<code>Peer</code>。</p>
+<h3 id="whisper中的Peer"><a href="#whisper中的Peer" class="headerlink" title="whisper中的Peer"></a><code>whisper</code>中的<code>Peer</code></h3><p>在<code>peer.go</code>中有关于<code>Peer</code>的定义，<code>Peer</code>代表了在<code>whisper</code>协议中的一个节点连接。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// whisper/whisperv6/peer.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Peer <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// 本地whisper节点</span></span><br><span class="line">	host *Whisper </span><br><span class="line">	<span class="comment">// 远程whisper节点</span></span><br><span class="line">	peer *p2p.Peer</span><br><span class="line">	<span class="comment">// 消息读写句柄</span></span><br><span class="line">	ws   p2p.MsgReadWriter</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 远程节点是否可信</span></span><br><span class="line">	trusted        <span class="keyword">bool</span></span><br><span class="line">	<span class="comment">// 远程节点要求的POW值</span></span><br><span class="line">	powRequirement <span class="keyword">float64</span></span><br><span class="line">	<span class="comment">// 布隆过滤器锁</span></span><br><span class="line">	bloomMu        sync.Mutex</span><br><span class="line">	<span class="comment">// 布隆过滤器</span></span><br><span class="line">	bloomFilter    []<span class="keyword">byte</span></span><br><span class="line">	<span class="comment">// 是否是全节点过滤器</span></span><br><span class="line">	fullNode       <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 存储该节点已知的消息，以避免浪费带宽</span></span><br><span class="line">	known *set.Set <span class="comment">// Messages already known by the peer to avoid wasting bandwidth</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 优雅的退出连接</span></span><br><span class="line">	quit <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="新建一个远程节点的本地代理Peer"><a href="#新建一个远程节点的本地代理Peer" class="headerlink" title="新建一个远程节点的本地代理Peer"></a>新建一个远程节点的本地代理<code>Peer</code></h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// whisper/whisperv6/peer.go</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 新建一个whisper协议下的peer对象，但这个方法并不会去握手。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newPeer</span><span class="params">(host *Whisper, remote *p2p.Peer, rw p2p.MsgReadWriter)</span> *<span class="title">Peer</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;Peer&#123;</span><br><span class="line">		host:           host,</span><br><span class="line">		peer:           remote,</span><br><span class="line">		ws:             rw,</span><br><span class="line">		trusted:        <span class="literal">false</span>, <span class="comment">// 默认不可信</span></span><br><span class="line">		powRequirement: <span class="number">0.0</span>, <span class="comment">// 初始化为0</span></span><br><span class="line">		known:          set.New(),</span><br><span class="line">		quit:           <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;),</span><br><span class="line">		bloomFilter:    MakeFullNodeBloom(), <span class="comment">//创建一个长度为64的布隆过滤器，并且所有位初始化为0xFF</span></span><br><span class="line">		fullNode:       <span class="literal">true</span>, <span class="comment">// 已经初始化为全节点过滤器</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="和远程节点握手：handshake"><a href="#和远程节点握手：handshake" class="headerlink" title="和远程节点握手：handshake()"></a>和远程节点握手：<code>handshake()</code></h3><p><code>handshake()</code>向远程节点发送协议初始化状态信息，同时也会验证远程节点的状态。状态消息有以下几点要素：</p>
+<ol>
+<li>消息代号为<code>statusCode</code>，即<code>0</code></li>
+<li>消息的<code>payload</code>是一个列表：<code>[whisper协议版本号(即6), 本地节点需要的最小POW值, 本地节点感兴趣的消息过滤器]</code></li>
+<li>只有版本号是强制验证的，后续<code>2</code>个参数都是可选的，即<code>本地节点要求的最小POW</code>和<code>本地节点感兴趣的消息过滤器</code></li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// whisper/whisperv6/peer.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(peer *Peer)</span> <span class="title">handshake</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 异步地发送握手状态消息</span></span><br><span class="line">	errc := <span class="built_in">make</span>(<span class="keyword">chan</span> error, <span class="number">1</span>) <span class="comment">// error channel</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		pow := peer.host.MinPow() <span class="comment">// 获取本地节点（自己）的POW最小需求值</span></span><br><span class="line">		powConverted := math.Float64bits(pow) <span class="comment">// 将float64转化为uint64</span></span><br><span class="line">		<span class="comment">// BloomFilter()为本地节点所有感兴趣的话题返回一个集成的布隆过滤器</span></span><br><span class="line">		<span class="comment">// 要求远程节点只能发送被通告的布隆过滤器中匹配的消息</span></span><br><span class="line">		<span class="comment">// 如果不匹配，则被认为是垃圾消息，并将与该远程节点断开连接。</span></span><br><span class="line">		bloom := peer.host.BloomFilter()</span><br><span class="line">		<span class="comment">// 通过读写句柄向远程节点发送状态消息（状态码为0，表示这是一个状态消息）</span></span><br><span class="line">		<span class="comment">// 这个消息包含了[whisper的协议版本号，POW值，消息相关的布隆过滤器]</span></span><br><span class="line">		errc &lt;- p2p.SendItems(peer.ws, statusCode, ProtocolVersion, powConverted, bloom)</span><br><span class="line">	&#125;()</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 获取远程节点状态数据，并且验证协议是否匹配</span></span><br><span class="line">	packet, err := peer.ws.ReadMsg() <span class="comment">// 从读写句柄中读取远程消息</span></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 正常情况下，第一个数据包的代号应该是状态码，否则就报错</span></span><br><span class="line">	<span class="keyword">if</span> packet.Code != statusCode &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"peer [%x] sent packet %x before status packet"</span>, peer.ID(), packet.Code)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 数据包是rlp序列化格式，需要进行解码</span></span><br><span class="line">	s := rlp.NewStream(packet.Payload, <span class="keyword">uint64</span>(packet.Size))</span><br><span class="line">	_, err = s.List()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"peer [%x] sent bad status message: %v"</span>, peer.ID(), err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 读取前8个字节，作为协议版本号</span></span><br><span class="line">	<span class="comment">//（上面也看到了，状态消息的格式为一个列表：[whisper的协议版本号，POW值，消息相关的布隆过滤器]）</span></span><br><span class="line">	peerVersion, err := s.Uint()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"peer [%x] sent bad status message (unable to decode version): %v"</span>, peer.ID(), err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 如果获取到的协议版本号不是uint64(6)，那么说明协议不匹配。</span></span><br><span class="line">	<span class="keyword">if</span> peerVersion != ProtocolVersion &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"peer [%x]: protocol version mismatch %d != %d"</span>, peer.ID(), peerVersion, ProtocolVersion)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 只有版本号是强制要求的，后续的参数都是可选的</span></span><br><span class="line">	powRaw, err := s.Uint() <span class="comment">// 继续读取8个字节，作为POW值</span></span><br><span class="line">	<span class="comment">// 如果没出错，则验证pow和bloomfilter；如果出错，也没什么，继续往下走，即后续参数是可选的</span></span><br><span class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">		pow := math.Float64frombits(powRaw) <span class="comment">// uint64 -&gt; float64</span></span><br><span class="line">		<span class="comment">// pow无穷大，不是数字，小于0，都会报错</span></span><br><span class="line">		<span class="keyword">if</span> math.IsInf(pow, <span class="number">0</span>) || math.IsNaN(pow) || pow &lt; <span class="number">0.0</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> fmt.Errorf(<span class="string">"peer [%x] sent bad status message: invalid pow"</span>, peer.ID())</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 用pow更新peer.powRequirement</span></span><br><span class="line">		peer.powRequirement = pow</span><br><span class="line"></span><br><span class="line">		<span class="keyword">var</span> bloom []<span class="keyword">byte</span></span><br><span class="line">		err = s.Decode(&amp;bloom) <span class="comment">//将剩余的部分全部解码，并存至bloom[]中</span></span><br><span class="line">		<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</span><br><span class="line">			sz := <span class="built_in">len</span>(bloom)</span><br><span class="line">			<span class="comment">// 初始化时，布隆过滤器的长度都是BloomFilterSize，即64，否则就验证报错。</span></span><br><span class="line">			<span class="keyword">if</span> sz != BloomFilterSize &amp;&amp; sz != <span class="number">0</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> fmt.Errorf(<span class="string">"peer [%x] sent bad status message: wrong bloom filter size %d"</span>, peer.ID(), sz)</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 用解码后的bloom更新peer.bloomFilter,以及peer.fullNode</span></span><br><span class="line">			peer.setBloomFilter(bloom)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 阻塞等待通道是否返回错误，如果出错，则报错。</span></span><br><span class="line">	<span class="keyword">if</span> err := &lt;-errc; err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">"peer [%x] failed to send status packet: %v"</span>, peer.ID(), err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="开始通信：start"><a href="#开始通信：start" class="headerlink" title="开始通信：start()"></a>开始通信：<code>start()</code></h3><p><code>start()</code>初始化</p>
+<h1 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h1><ul>
+<li><p><a href="https://github.com/ethereum/wiki/wiki/Whisper" target="_blank" rel="noopener">https://github.com/ethereum/wiki/wiki/Whisper</a></p>
+</li>
+<li><p><a href="https://github.com/ethereum/go-ethereum/wiki/Whisper-Overview#proof-of-work" target="_blank" rel="noopener">https://github.com/ethereum/go-ethereum/wiki/Whisper-Overview#proof-of-work</a></p>
+</li>
+<li><p><a href="https://github.com/ethereum/wiki/wiki/Whisper#considerations-for-defeating-traffic-analysis" target="_blank" rel="noopener">https://github.com/ethereum/wiki/wiki/Whisper#considerations-for-defeating-traffic-analysis</a></p>
+</li>
+<li><p><a href="https://en.wikipedia.org/wiki/Rendezvous_protocol" target="_blank" rel="noopener">https://en.wikipedia.org/wiki/Rendezvous_protocol</a></p>
+</li>
+<li><p><a href="https://github.com/ethereum/EIPs/blob/master/EIPS/eip-627.md" target="_blank" rel="noopener">https://github.com/ethereum/EIPs/blob/master/EIPS/eip-627.md</a></p>
+</li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/04/09/Ethereum源码阅读笔记-accounts/" rel="next" title="Ethereum源码阅读笔记-accounts">
+                <i class="fa fa-chevron-left"></i> Ethereum源码阅读笔记-accounts
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/04/16/Ethereum源码阅读笔记-eth/" rel="prev" title="Ethereum源码阅读笔记-eth">
+                Ethereum源码阅读笔记-eth <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#go-ethereum-whisper"><span class="nav-number">1.</span> <span class="nav-text">go-ethereum/whisper</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Whisper定义"><span class="nav-number">1.1.</span> <span class="nav-text">Whisper定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Whisper节点的配置Config"><span class="nav-number">1.2.</span> <span class="nav-text">Whisper节点的配置Config</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#新建一个Whisper客户端"><span class="nav-number">1.3.</span> <span class="nav-text">新建一个Whisper客户端</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#HandlePeer：发现新节点后做什么"><span class="nav-number">1.4.</span> <span class="nav-text">HandlePeer：发现新节点后做什么</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#whisper中的Peer"><span class="nav-number">1.4.1.</span> <span class="nav-text">whisper中的Peer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#新建一个远程节点的本地代理Peer"><span class="nav-number">1.4.2.</span> <span class="nav-text">新建一个远程节点的本地代理Peer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#和远程节点握手：handshake"><span class="nav-number">1.4.3.</span> <span class="nav-text">和远程节点握手：handshake()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#开始通信：start"><span class="nav-number">1.4.4.</span> <span class="nav-text">开始通信：start()</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考资料"><span class="nav-number">2.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

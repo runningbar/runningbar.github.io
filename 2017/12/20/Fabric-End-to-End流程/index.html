@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  end-to-end验证提供了一个示例fabric网络，包括2个组织，每个组织包含2个peer节点，以及1个基于Kafka的排序服务。 这个验证用到了2个基础工具，用来创建一个带有数字签名验证的和访问控制的实用交易网络：  cryptogen - 创建x509证书，用来标识和验证网络中的各种组件。 configtxgen - 为orderer节">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Fabric End-to-End流程">
+<meta property="og:url" content="http://www.huamo.online/2017/12/20/Fabric-End-to-End流程/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  end-to-end验证提供了一个示例fabric网络，包括2个组织，每个组织包含2个peer节点，以及1个基于Kafka的排序服务。 这个验证用到了2个基础工具，用来创建一个带有数字签名验证的和访问控制的实用交易网络：  cryptogen - 创建x509证书，用来标识和验证网络中的各种组件。 configtxgen - 为orderer节">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-06-20T02:48:01.967Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Fabric End-to-End流程">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  end-to-end验证提供了一个示例fabric网络，包括2个组织，每个组织包含2个peer节点，以及1个基于Kafka的排序服务。 这个验证用到了2个基础工具，用来创建一个带有数字签名验证的和访问控制的实用交易网络：  cryptogen - 创建x509证书，用来标识和验证网络中的各种组件。 configtxgen - 为orderer节">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2017/12/20/Fabric-End-to-End流程/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Fabric End-to-End流程 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2017/12/20/Fabric-End-to-End流程/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Fabric End-to-End流程
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2017-12-20 10:34:49" itemprop="dateCreated datePublished" datetime="2017-12-20T10:34:49+08:00">2017-12-20</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/fabric/" itemprop="url" rel="index"><span itemprop="name">fabric</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<p><code>end-to-end</code>验证提供了一个示例<code>fabric</code>网络，包括2个组织，每个组织包含2个<code>peer</code>节点，以及1个基于<code>Kafka</code>的排序服务。</p>
+<p>这个验证用到了2个基础工具，用来创建一个带有数字签名验证的和访问控制的实用交易网络：</p>
+<ul>
+<li><code>cryptogen</code> - 创建x509证书，用来标识和验证网络中的各种组件。</li>
+<li><code>configtxgen</code> - 为<code>orderer</code>节点的启动和<code>channel</code>的创建，生成必需的配置文件(<code>artifacts</code>)。<a id="more"></a></li>
+</ul>
+<p>每一个工具用到一个<code>yaml</code>配置文件，在里面我们指定了网络的拓扑结构（<code>cryptogen</code>需用到），以及用于各种配置操作的证书的位置（<code>configtxgen</code>需用到）。当这些工具都已被成功运行后，我们就可以发布这个网络了。工具的更多细节和网络的架构在下文描述。现在，让我们开始吧…</p>
+<h2 id="前置操作【Prerequisites】"><a href="#前置操作【Prerequisites】" class="headerlink" title="前置操作【Prerequisites】"></a>前置操作【<code>Prerequisites</code>】</h2><h3 id="编译二进制包"><a href="#编译二进制包" class="headerlink" title="编译二进制包"></a>编译二进制包</h3><ul>
+<li><p>先生成特定平台的，<code>cryptogen</code>和<code>configtxgen</code>二进制包</p>
+  <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> <span class="variable">$GOPATH</span>/src/github.com/hyperledger/fabric</span><br><span class="line">$ make release</span><br></pre></td></tr></table></figure>
+
+<p>  该命令将会在<code>fabric/release</code>文件夹中输出特定平台的二进制包。</p>
+</li>
+<li><p>接下来，编译<code>Fabric</code>镜像。这一般需要5 ~ 10分钟，所以耐心等候【国内需要更大的耐心…】：</p>
+  <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> <span class="variable">$GOPATH</span>/src/github.com/hyperledger/fabric</span><br><span class="line">$ make docker</span><br></pre></td></tr></table></figure>
+
+
+</li>
+</ul>
+<p>在终端运行命令<code>docker images</code>，如果这些镜像都被成功编译，你应该能够看到类似于下面的输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">REPOSITORY                     TAG                   IMAGE ID            CREATED             SIZE</span><br><span class="line">hyperledger/fabric-couchdb     latest                e2df4dd39ca9        38 minutes ago      1.51 GB</span><br><span class="line">hyperledger/fabric-couchdb     x86_64-1.0.0-beta     e2df4dd39ca9        38 minutes ago      1.51 GB</span><br><span class="line">hyperledger/fabric-kafka       latest                08af4d797266        40 minutes ago      1.3 GB</span><br><span class="line">hyperledger/fabric-kafka       x86_64-1.0.0-beta     08af4d797266        40 minutes ago      1.3 GB</span><br><span class="line">hyperledger/fabric-zookeeper   latest                444e9e695367        40 minutes ago      1.31 GB</span><br><span class="line">hyperledger/fabric-zookeeper   x86_64-1.0.0-beta     444e9e695367        40 minutes ago      1.31 GB</span><br><span class="line">hyperledger/fabric-testenv     latest                8678d3101930        41 minutes ago      1.41 GB</span><br><span class="line">hyperledger/fabric-testenv     x86_64-1.0.0-beta     8678d3101930        41 minutes ago      1.41 GB</span><br><span class="line">hyperledger/fabric-buildenv    latest                60911392c82e        41 minutes ago      1.33 GB</span><br><span class="line">hyperledger/fabric-buildenv    x86_64-1.0.0-beta     60911392c82e        41 minutes ago      1.33 GB</span><br><span class="line">hyperledger/fabric-orderer     latest                2afab937b9cc        41 minutes ago      182 MB</span><br><span class="line">hyperledger/fabric-orderer     x86_64-1.0.0-beta     2afab937b9cc        41 minutes ago      182 MB</span><br><span class="line">hyperledger/fabric-peer        latest                9560e58e8089        41 minutes ago      185 MB</span><br><span class="line">hyperledger/fabric-peer        x86_64-1.0.0-beta     9560e58e8089        41 minutes ago      185 MB</span><br><span class="line">hyperledger/fabric-javaenv     latest                881ca5219fad        42 minutes ago      1.43 GB</span><br><span class="line">hyperledger/fabric-javaenv     x86_64-1.0.0-beta     881ca5219fad        42 minutes ago      1.43 GB</span><br><span class="line">hyperledger/fabric-ccenv       latest                28af77ffe9e9        43 minutes ago      1.29 GB</span><br><span class="line">hyperledger/fabric-ccenv       x86_64-1.0.0-beta     28af77ffe9e9        43 minutes ago      1.29 GB</span><br><span class="line">hyperledger/fabric-baseimage   x86_64-0.3.0          f4751a503f02        3 months ago        1.27 GB</span><br><span class="line">hyperledger/fabric-baseos      x86_64-0.3.0          c3a4cf3b3350        3 months ago        161 MB</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>如果在编译过程中失败了，可以修复错误，然后执行<code>make clean</code>，最后再<code>make docker</code>。</p>
+</blockquote>
+<h2 id="Cryptogen工具"><a href="#Cryptogen工具" class="headerlink" title="Cryptogen工具"></a><code>Cryptogen</code>工具</h2><p>我们将使用<code>cryptogen</code>工具来为我们的各种网络实体生成加密内容（<code>x509</code>证书）。证书基于<code>PKI</code>标准实现，通过回溯到一个共同的信任锚点来实现验证。</p>
+<h3 id="它是如何工作的？"><a href="#它是如何工作的？" class="headerlink" title="它是如何工作的？"></a>它是如何工作的？</h3><p><code>Cryptogen</code>使用一个文件 - <code>crypto-config.yaml</code> - 包含了网络的拓扑结构，并且允许我们为组织以及组织中的各种组件，生成一系列的证书。每个组织被提供了一个唯一的根证书（<code>ca-cert</code>），将指定的组件（<code>peers</code>和<code>orderers</code>）绑定到了该组织上。<code>Fabric</code>中的交易和通讯都由一个实体的私钥（<code>keystore</code>）进行签名，然后由相应的公钥（<code>signcerts</code>）进行验证。在这个<code>yaml</code>文件中你会看到一个<code>count</code>变量。我们使用这个值指定了每个组织的<code>peer</code>数量；这里我们指定了2个<code>peer</code>。这个模板的其它部分都是非常浅显易懂的。</p>
+<p>在我们运行了工具之后，证书会被放在<code>crypto-config</code>目录下。</p>
+<h2 id="Configtxgen工具"><a href="#Configtxgen工具" class="headerlink" title="Configtxgen工具"></a><code>Configtxgen</code>工具</h2><p><code>configtxgen</code>工具用来生成4种文件：orderer节点的启动块（<code>bootstrap block</code>），fabric channel的配置交易（<code>channel configuration transaction</code>），以及2个锚<code>peer</code>交易（<code>anchor peer transactions</code>）– 一个<code>Peer</code>组织一个。</p>
+<p><code>orderer block</code>是排序服务的创世块，<code>channel</code>交易文件会在<code>channel</code>创建时广播给<code>orderer</code>节点。而锚<code>peer</code>节点交易，就像名字表示的那样，在这个<code>channel</code>上为每个组织指定一个锚<code>peer</code>节点。</p>
+<h3 id="它是如何工作的？-1"><a href="#它是如何工作的？-1" class="headerlink" title="它是如何工作的？"></a>它是如何工作的？</h3><p><code>Configtxgen</code>读取一个文件 - <code>configtx.yaml</code> - 文件中包含了样例网络的定义。有3个成员 - 一个<code>Orderer</code>组织（<code>OrdererOrg</code>），和2个<code>Peer</code>组织(<code>Org1</code>和<code>Org2</code>）每个都管理和维护2个<code>peer</code>节点。这个文件也指定了一个联盟 - <code>SampleConsortium</code> - 包含我们的2个Peer组织的联盟。对文件顶部的<code>Profiles</code>区域中内容多留意下。你会发现我们有2个不同的顶级属性。一个是给orderer创世块用的 - <code>TwoOrgsOrdererGenesis</code> - 另一个是给<code>channel</code>用的 - <code>TwoOrgsChannel</code>。这些顶级属性是很重要的，当我们创建配置文件时我们会把它们作为参数传入进去。这个<code>yaml</code>文件还包含了2个值得注意的额外规范。首先，我们为每一个<code>Peer</code>组织指定了锚<code>peer</code>节点（<code>peer0.org1.example.com</code>和<code>peer0,org2.example.com</code>）。然后，我们为每一个成员指定了<code>MSP</code>文件夹路径，这就使我们可以在<code>orderer</code>创世块中按顺序的存储每个组织的根证书。这是一个很关键的概念。现在任何与排序服务通信的网络实体都能够被<code>orderer</code>验证其数字签名了。</p>
+<h3 id="运行shell脚本"><a href="#运行shell脚本" class="headerlink" title="运行shell脚本"></a>运行<code>shell</code>脚本</h3><p>确认你在<code>examples/e2e_cli</code>目录下，这是<code>shell</code>脚本所在的位置。为你的<code>channel</code>起一个独特的名字，然后替换掉下方的<code>&lt;channel-ID&gt;</code>参数。如果你不提供一个名字，那么这个脚本会运行失败。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> examples/e2e_cli</span><br><span class="line">$ ./generateArtifacts.sh &lt;channel-ID&gt;</span><br></pre></td></tr></table></figure>
+
+<p>这个脚本的输出有些多，因为它会生成加密库和多个文件。但是，你会在终端里看到5个截然不同的说明信息，如下所示：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">##########################################################</span></span><br><span class="line"><span class="comment">##### Generate certificates using cryptogen tool #########</span></span><br><span class="line"><span class="comment">##########################################################</span></span><br><span class="line"></span><br><span class="line"><span class="comment">##########################################################</span></span><br><span class="line"><span class="comment">#########  Generating Orderer Genesis block ##############</span></span><br><span class="line"><span class="comment">##########################################################</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#################################################################</span></span><br><span class="line"><span class="comment">### Generating channel configuration transaction 'channel.tx' ###</span></span><br><span class="line"><span class="comment">#################################################################</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#################################################################</span></span><br><span class="line"><span class="comment">#######    Generating anchor peer update for Org0MSP   ##########</span></span><br><span class="line"><span class="comment">#################################################################</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#################################################################</span></span><br><span class="line"><span class="comment">#######    Generating anchor peer update for Org1MSP   ##########</span></span><br><span class="line"><span class="comment">#################################################################</span></span><br></pre></td></tr></table></figure>
+
+<p>这些配置交易将会绑定参与成员和它们的网络组件的加密内容，并且生成1个<code>orderer</code>创世块和3个channel交易文件。对于启动一个Fabric网络，以及创建一个channel来在上面做交易，这些文件都是必要的。</p>
+<h2 id="用Docker运行end-to-end测试"><a href="#用Docker运行end-to-end测试" class="headerlink" title="用Docker运行end-to-end测试"></a>用<code>Docker</code>运行<code>end-to-end</code>测试</h2><p>确保你在<code>/e2e_cli</code>目录下。然后使用<code>docker-compose</code>创建网络实体运行测试。注意你可以使用<code>TIMEOUT</code>变量（以秒为单位），以便你的<code>cli</code>容器不会在脚本结束后立马退出。你可以使用任何数值：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># TIMEOUT变量是可选的</span></span><br><span class="line">$ CHANNEL_NAME=&lt;channel-id&gt; TIMEOUT=&lt;value&gt; docker-compose -f docker-compose-cli.yaml up -d</span><br></pre></td></tr></table></figure>
+
+<p>如果你创建了一个特定的channel名称，确保将它传入到了参数中。比如，</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ CHANNEL_NAME=abc TIMEOUT=1000 docker-compose -f docker-compose-cli.yaml up -d</span><br></pre></td></tr></table></figure>
+
+<p>等待，大概60s左右。在后台，有交易发送给peers。执行<code>docker ps</code>命令来查看你激活的容器。你应该能够看到如下的输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">CONTAINER ID        IMAGE                                 COMMAND                  CREATED             STATUS              PORTS                                              NAMES</span><br><span class="line">b568de3fe931        dev-peer1.org2.example.com-mycc-1.0   <span class="string">"chaincode -peer.a..."</span>   4 minutes ago       Up 4 minutes                                                           dev-peer1.org2.example.com-mycc-1.0</span><br><span class="line">17c1c82087e7        dev-peer0.org1.example.com-mycc-1.0   <span class="string">"chaincode -peer.a..."</span>   4 minutes ago       Up 4 minutes                                                           dev-peer0.org1.example.com-mycc-1.0</span><br><span class="line">0e1c5034c47b        dev-peer0.org2.example.com-mycc-1.0   <span class="string">"chaincode -peer.a..."</span>   4 minutes ago       Up 4 minutes                                                           dev-peer0.org2.example.com-mycc-1.0</span><br><span class="line">71339e7e1d38        hyperledger/fabric-peer               <span class="string">"peer node start -..."</span>   5 minutes ago       Up 5 minutes        0.0.0.0:8051-&gt;7051/tcp, 0.0.0.0:8053-&gt;7053/tcp     peer1.org1.example.com</span><br><span class="line">add6113ffdcf        hyperledger/fabric-peer               <span class="string">"peer node start -..."</span>   5 minutes ago       Up 5 minutes        0.0.0.0:10051-&gt;7051/tcp, 0.0.0.0:10053-&gt;7053/tcp   peer1.org2.example.com</span><br><span class="line">689396c0e520        hyperledger/fabric-peer               <span class="string">"peer node start -..."</span>   5 minutes ago       Up 5 minutes        0.0.0.0:7051-&gt;7051/tcp, 0.0.0.0:7053-&gt;7053/tcp     peer0.org1.example.com</span><br><span class="line">65424407a653        hyperledger/fabric-orderer            <span class="string">"orderer"</span>                5 minutes ago       Up 5 minutes        0.0.0.0:7050-&gt;7050/tcp                             orderer.example.com</span><br><span class="line">ce14853db660        hyperledger/fabric-peer               <span class="string">"peer node start -..."</span>   5 minutes ago       Up 5 minutes        0.0.0.0:9051-&gt;7051/tcp, 0.0.0.0:9053-&gt;7053/tcp     peer0.org2.example.com</span><br></pre></td></tr></table></figure>
+
+<p>如果你设置了一个比较大的<code>TIMEOUT</code>值，你还可以看到你的<code>cli</code>容器。</p>
+<h3 id="后台究竟发生了什么？"><a href="#后台究竟发生了什么？" class="headerlink" title="后台究竟发生了什么？"></a>后台究竟发生了什么？</h3><ul>
+<li><p>一个脚本 - <code>script.sh</code> - 被放在了<code>cli</code>容器中。这个脚本会使用提供的<code>channel</code>名字，以及用于<code>channel</code>设置的<code>channel.tx</code>文件，执行<code>createChannel</code>命令。</p>
+</li>
+<li><p><code>createChannel</code>的输出是一个创世块 - <code>&lt;your_channel_name&gt;.block</code> - 会存在peers的文件系统中，并且包含了由<code>channel.tx</code>指定的<code>channel</code>配置。</p>
+</li>
+<li><p><code>joinChannel</code>命令用于所有4个<code>peer</code>节点，用上一步产生的创世块作为输入。该命令指示这些peer节点加入<code>&lt;your_channel_name&gt;</code>，并且创建一个以<code>&lt;your_channel_name&gt;.block</code>开始的链。</p>
+</li>
+<li><p>现在我们有了一个包含4个<code>peer</code>节点，和2个组织的链。这就是我们<code>TwoOrgsChannel</code>描述的样子。</p>
+</li>
+<li><p><code>peer0.org1.example.com</code>和<code>peer1.org1.example.com</code>隶属于<code>Org1</code>；<code>peer0.org2.example.com</code>和<code>peer1.org2.example.com</code>隶属于<code>Org2</code>。</p>
+</li>
+<li><p>这些关系都定义在<code>crypto-config.yaml</code>文件中，并且<code>MSP</code>路径在我们的<code>docker-compose</code>文件中指定了。</p>
+</li>
+<li><p>Org1MSP(<code>peer0.org1.example.com</code>)和Org2MSP(<code>peer0.org2.example.com</code>)的锚<code>peer</code>随后都会被更新，我们实现这一步是通过将<code>Org1MSPanchors.tx</code>和<code>Org2MSPanchors.tx</code>配置传入到<code>orderer</code>服务中实现的，同时传入的还有我们的<code>channel</code>名称。</p>
+</li>
+<li><p>一个<code>chaincode</code> - <code>chaincode_example02</code> - 被安装在了<code>peer0.org1.example.com</code>和<code>peer0.org2.example.com</code>上。</p>
+</li>
+<li><p>这个<code>chaincode</code>随后在<code>peer0.org2.example.com</code>被<code>instantiate</code>。初始化操作会将这个<code>chaincode</code>添加到<code>channel</code>中，针对目标<code>peer</code>启动<code>docker</code>容器，并且用和<code>chaincode</code>相关的<code>key-value</code>对进行初始化。在这个例子中初始化值为[<code>&quot;a&quot;,&quot;100&quot;,&quot;b&quot;,&quot;200&quot;</code>]。初始化结束后，以<code>dev-peer0.org2.example.com-mycc-1.0</code>为名字的容器开始运行。</p>
+</li>
+<li><p>对<code>a</code>键的<code>query</code>发送到了<code>peer0.org1.example.com</code>上。相关的<code>chaincode</code>前面已经安装在了<code>peer0.org1.example.com</code>上，所以这将会为<code>Org1 peer0</code>运行一个名为<code>dev-peer0.org1.example.com-mycc-1.0</code>的容器。<code>query</code>的结果也会被返回。由于并没有发生写操作，所以对<code>a</code>的<code>query</code>依然会返回值<code>100</code>。</p>
+</li>
+<li><p>有一个<code>invoke</code>调用发送到了<code>peer0.org1.example.com</code>上，该调用是”a向b转10块钱”。</p>
+</li>
+<li><p>这个<code>chaincode</code>随后还被安装在了<code>peer1.org2.example.com</code>上。</p>
+</li>
+<li><p>有一个对<code>a</code>的<code>query</code>操作发送到了<code>peer1.org2.example.com</code>上。这会启动第3个<code>chaincode</code>容器，名为<code>dev-peer1.org2.example.com-mycc-1.0</code>。并返回值<code>90</code>，这正确的反映了之前的交易，即将<code>a</code>的值减<code>10</code>。</p>
+</li>
+</ul>
+<h3 id="这证明了什么？"><a href="#这证明了什么？" class="headerlink" title="这证明了什么？"></a>这证明了什么？</h3><p>证明了<code>chaincode</code><strong>必须</strong>要安装在一个<code>peer</code>上，以便于它能够成功地在账本上执行读/写操作。并且，一个<code>peer</code>上的<code>chaincode</code>不会马上就启动容器，直到有一个<code>init</code>操作或者有交易发生时才会运行 - 读/写操作 - 都是和<code>chaincode</code>相关的（比如：对<code>a</code>的<code>query</code>操作）。交易可以使容器开始运行。另外，在一个<code>channel</code>中的所有<code>peer</code>都会维护一个完全相同的账本拷贝，这个账本由区块链构成，存储了不可篡改的，在区块中有序记录的数据，并且还维护了一个状态数据库，来维持当前的<code>fabric</code>状态。这包含了那些没有安装<code>chaincode</code>的<code>peer</code>(比如：上面例子中的<code>peer1.org1.example.com</code>)，它们依然也有账本拷贝和状态数据库。最后，这个被安装后的合约就是可以访问的（比如：上面例子中的<code>peer1.org2.example.com</code>），因为它在<code>peer0.org2.example.com</code>上已经被初始化了。</p>
+<h3 id="我如何查看这些交易？"><a href="#我如何查看这些交易？" class="headerlink" title="我如何查看这些交易？"></a>我如何查看这些交易？</h3><p>可以查看<code>CLI</code>容器的<code>logs</code>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ docker logs -f cli</span><br></pre></td></tr></table></figure>
+
+<p>你会看到如下输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">2017-05-16 17:08:01.366 UTC [msp] GetLocalMSP -&gt; DEBU 004 Returning existing <span class="built_in">local</span> MSP</span><br><span class="line">2017-05-16 17:08:01.366 UTC [msp] GetDefaultSigningIdentity -&gt; DEBU 005 Obtaining default signing identity</span><br><span class="line">2017-05-16 17:08:01.366 UTC [msp/identity] Sign -&gt; DEBU 006 Sign: plaintext: 0AB1070A6708031A0C08F1E3ECC80510...6D7963631A0A0A0571756572790A0161</span><br><span class="line">2017-05-16 17:08:01.367 UTC [msp/identity] Sign -&gt; DEBU 007 Sign: digest: E61DB37F4E8B0D32C9FE10E3936BA9B8CD278FAA1F3320B08712164248285C54</span><br><span class="line">Query Result: 90</span><br><span class="line">2017-05-16 17:08:15.158 UTC [main] main -&gt; INFO 008 Exiting.....</span><br><span class="line">===================== Query on PEER3 on channel <span class="string">'mychannel'</span> is successful =====================</span><br><span class="line"></span><br><span class="line">===================== All GOOD, End-2-End execution completed =====================</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"> _____   _   _   ____            _____   ____    _____</span><br><span class="line">| ____| | \ | | |  _ \          | ____| |___ \  | ____|</span><br><span class="line">|  _|   |  \| | | | | |  _____  |  _|     __) | |  _|</span><br><span class="line">| |___  | |\  | | |_| | |_____| | |___   / __/  | |___</span><br><span class="line">|_____| |_| \_| |____/          |_____| |_____| |_____|</span><br></pre></td></tr></table></figure>
+
+<h3 id="我如何查看chaincode的logs"><a href="#我如何查看chaincode的logs" class="headerlink" title="我如何查看chaincode的logs"></a>我如何查看<code>chaincode</code>的<code>logs</code></h3><p>可以查看每一个<code>chaincode</code>容器的<code>logs</code>，来检查发生在各个容器上面的每一笔交易。下面是各个容器的集合输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">$ docker logs dev-peer0.org2.example.com-mycc-1.0</span><br><span class="line">04:30:45.947 [BCCSP_FACTORY] DEBU : Initialize BCCSP [SW]</span><br><span class="line">ex02 Init</span><br><span class="line">Aval = 100, Bval = 200</span><br><span class="line"></span><br><span class="line">$ docker logs dev-peer0.org1.example.com-mycc-1.0</span><br><span class="line">04:31:10.569 [BCCSP_FACTORY] DEBU : Initialize BCCSP [SW]</span><br><span class="line">ex02 Invoke</span><br><span class="line">Query Response:&#123;<span class="string">"Name"</span>:<span class="string">"a"</span>,<span class="string">"Amount"</span>:<span class="string">"100"</span>&#125;</span><br><span class="line">ex02 Invoke</span><br><span class="line">Aval = 90, Bval = 210</span><br><span class="line"></span><br><span class="line">$ docker logs dev-peer1.org2.example.com-mycc-1.0</span><br><span class="line">04:31:30.420 [BCCSP_FACTORY] DEBU : Initialize BCCSP [SW]</span><br><span class="line">ex02 Invoke</span><br><span class="line">Query Response:&#123;<span class="string">"Name"</span>:<span class="string">"a"</span>,<span class="string">"Amount"</span>:<span class="string">"90"</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="我全都要（ALL-in-one）"><a href="#我全都要（ALL-in-one）" class="headerlink" title="我全都要（ALL in one）"></a><strong>我全都要（ALL in one）</strong></h3><p>你也可以生成配置文件和加密资料，并且使用单独的<code>shell</code>脚本进行测试。<code>crptogen</code>，<code>configtxgen</code>，以及<code>docker-compose</code>命令都集合到了脚本里。如果你不提供一个<code>channel ID</code>，那么脚本就会使用默认名字<code>mychannel</code>。<code>cli</code>容器的超时参数是一个可选值；如果你不去设置它，那么<code>cli</code>容器将在脚本结束时退出。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ./network_setup.sh up</span><br></pre></td></tr></table></figure>
+
+<p>或者</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ./network_setup.sh up &lt;channel-ID&gt; &lt;timeout-value&gt;</span><br></pre></td></tr></table></figure>
+
+<p>全部清理可以用以下命令:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ./network_setup.sh down &lt;channel-ID&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><ul>
+<li><a href="https://github.com/runningbar/fabric/blob/master/examples/e2e_cli/end-to-end.rst" target="_blank" rel="noopener">https://github.com/runningbar/fabric/blob/master/examples/e2e_cli/end-to-end.rst</a></li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/11/30/docker积累/" rel="next" title="docker积累">
+                <i class="fa fa-chevron-left"></i> docker积累
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/02/07/Ethereum初探/" rel="prev" title="Ethereum初探">
+                Ethereum初探 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">15</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前置操作【Prerequisites】"><span class="nav-number">1.</span> <span class="nav-text">前置操作【Prerequisites】</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#编译二进制包"><span class="nav-number">1.1.</span> <span class="nav-text">编译二进制包</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Cryptogen工具"><span class="nav-number">2.</span> <span class="nav-text">Cryptogen工具</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#它是如何工作的？"><span class="nav-number">2.1.</span> <span class="nav-text">它是如何工作的？</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Configtxgen工具"><span class="nav-number">3.</span> <span class="nav-text">Configtxgen工具</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#它是如何工作的？-1"><span class="nav-number">3.1.</span> <span class="nav-text">它是如何工作的？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#运行shell脚本"><span class="nav-number">3.2.</span> <span class="nav-text">运行shell脚本</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#用Docker运行end-to-end测试"><span class="nav-number">4.</span> <span class="nav-text">用Docker运行end-to-end测试</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#后台究竟发生了什么？"><span class="nav-number">4.1.</span> <span class="nav-text">后台究竟发生了什么？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#这证明了什么？"><span class="nav-number">4.2.</span> <span class="nav-text">这证明了什么？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#我如何查看这些交易？"><span class="nav-number">4.3.</span> <span class="nav-text">我如何查看这些交易？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#我如何查看chaincode的logs"><span class="nav-number">4.4.</span> <span class="nav-text">我如何查看chaincode的logs</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#我全都要（ALL-in-one）"><span class="nav-number">4.5.</span> <span class="nav-text">我全都要（ALL in one）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考文章"><span class="nav-number">5.</span> <span class="nav-text">参考文章</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
