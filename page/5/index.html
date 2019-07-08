@@ -289,6 +289,247 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2017/06/05/Ubuntu-NFS使用/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                
+                <a href="/2017/06/05/Ubuntu-NFS使用/" class="post-title-link" itemprop="url">Ubuntu NFS使用</a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2017-06-05 14:22:01" itemprop="dateCreated datePublished" datetime="2017-06-05T14:22:01+08:00">2017-06-05</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/经验/" itemprop="url" rel="index"><span itemprop="name">经验</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <blockquote>
+<p>在<code>Ubuntu16.04</code>下测试通过</p>
+</blockquote>
+<h2 id="NFS安装"><a href="#NFS安装" class="headerlink" title="NFS安装"></a>NFS安装</h2><p>CentOS下查看NFS是否已经安装：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rpm -qa | grep &quot;nfs&quot;</span><br></pre></td></tr></table></figure>
+
+<p>Ubuntu下安装NFS服务器：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install nfs-kernel-server</span><br></pre></td></tr></table></figure>
+
+<p>Ubuntu下安装NFS客户端：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install nfs-common</span><br></pre></td></tr></table></figure>
+
+<h2 id="在NFS服务器上指定共享目录"><a href="#在NFS服务器上指定共享目录" class="headerlink" title="在NFS服务器上指定共享目录"></a>在NFS服务器上指定共享目录</h2><p>指定共享目录有2种方式，分别有不同的目的：一种适用于通用的文件存储；另一种则适用于带权限管理的文件存储。</p>
+<p>root用户可以在系统的任何位置做任何事情。然而，NFS挂载的目录不是这个系统的一部分，所以默认情况下，NFS服务器会拒绝执行需要超级用户权限的操作。这个默认的限制意味着，客户端系统的root用户无法在NFS挂载目录下，以root角色写文件，重新指定文件拥有者，或者执行其它超级用户操作。</p>
+<p>这里先介绍默认方式的共享目录配置方法，它适用于大多数场景，比如作为内容管理系统存储上传的文件，或者为用户开辟空间共享项目文件。</p>
+<p>首先，创建一个待共享的目录：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir -p /home/mine/nfs</span><br></pre></td></tr></table></figure>
+
+<p><strong>由于是默认的共享方式，NFS会将客户机上的所有<code>root</code>操作都映射为<code>nobody:nogroup</code>身份，因此，我们需要修改该目录的拥有权，以便匿名身份可以读写该目录</strong>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo chown nobody:nogroup /home/mine/nfs</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在下文的<code>/etc/exports</code>配置中，我们可以使用<code>all_squash</code>选项，将客户机上的所有用户都映射为匿名用户，这样就保证了所有人都能够存取该目录。</p>
+</blockquote>
+<p>接下来，配置NFS导出：</p>
+<p>使用root权限打开<code>/etc/exports</code>文件：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim /etc/exports</span><br></pre></td></tr></table></figure>
+
+<p>这个文件有一段注释内容，展示了每一个配置行的基本结构，语法大致是这样的：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">directory_to_share client(share_option1,...,share_optionN)</span><br></pre></td></tr></table></figure>
+
+<p>对于每一个要共享的目录都要配置一行：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/home/mine/nfs 192.168.100.180(rw,sync,all_squash,insecure)</span><br></pre></td></tr></table></figure>
+
+<p>这意味着将<code>/home/mine/nfs</code>目录共享给<code>192.168.100.180</code>机器使用，如果想共享给所有主机，也可以换成<code>*</code>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/home/mine/nfs *(rw,sync,all_squash,insecure) </span><br><span class="line">/*option list之间不能有空格，否则会报错：bad option list*/</span><br></pre></td></tr></table></figure>
+
+<p>共享设置一览：</p>
+<ul>
+<li>rw： 允许客户端对卷有读写权限</li>
+<li>sync： 强制NFS在回复之前将改变写入磁盘。因为回复反映了远程卷的实际状态，所以这样可以产生更加稳定一致的环境。然而，它也降低了文件操作的速度。</li>
+<li>all_squash：客户机上的任何用户读写该共享目录时，都映射成匿名用户，这样就<strong>便于所有用户对文件的存取</strong>。</li>
+<li>insecure：允许客户机从大于等于<code>1024</code>的端口来访问NFS，如果不写明此选项，有时候客户机<code>mount</code>时会报错<code>access denied</code>。</li>
+</ul>
+<p>Ubuntu下操作NFS服务器：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl start/stop/restart/status nfs-kernel-server.service</span><br></pre></td></tr></table></figure>
+
+<h2 id="在客户端创建挂载点"><a href="#在客户端创建挂载点" class="headerlink" title="在客户端创建挂载点"></a>在客户端创建挂载点</h2><p>为了在客户端机器上使用远程共享目录，我们需要将该目录挂载到本地一个空目录上。</p>
+<blockquote>
+<p>如果待挂载目录下已经有文件或文件夹，那么一旦你挂载了NFS共享目录，原有的文件就会被隐藏掉。所以要确保你的挂载目录若已存在，那么它得是一个空目录。</p>
+</blockquote>
+<p>创建挂载目录：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir -p /home/client/nfs</span><br></pre></td></tr></table></figure>
+
+<p>挂载NFS共享目录：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo mount 192.168.1.100:/home/mine/nfs /home/client/nfs //192.168.1.100是NFS服务器IP</span><br></pre></td></tr></table></figure>
+
+<p>检查挂载情况：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">df -h</span><br></pre></td></tr></table></figure>
+
+<p>卸载共享目录的挂载：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo umount /home/client/nfs</span><br></pre></td></tr></table></figure>
+
+<p>okay，现在无论在NFS服务器，还是客户机上，任何人都能对<code>nfs</code>共享目录进行读写操作了。</p>
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><ul>
+<li><a href="https://help.ubuntu.com/lts/serverguide/network-file-system.html" target="_blank" rel="noopener">NFS</a></li>
+<li><a href="https://www.digitalocean.com/community/tutorials/how-to-set-up-an-nfs-mount-on-ubuntu-16-04" target="_blank" rel="noopener">How To Set Up an NFS Mount on Ubuntu 16.04</a></li>
+<li><a href="https://linux.die.net/man/5/exports" target="_blank" rel="noopener">exports(5) - Linux man page</a></li>
+</ul>
+
+          
+        
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2017/06/01/Mac常用命令积累/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1970,196 +2211,11 @@
 
 
     
-      
-
-  
-
-  
-  
-  
-
-  
-
-  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2017/04/21/hello-world/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="runningbar">
-      <meta itemprop="description" content="分享即收获">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="花木兰">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                
-                <a href="/2017/04/21/hello-world/" class="post-title-link" itemprop="url">Hello World</a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-
-            
-            
-            
-
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-
-              
-                
-              
-
-              <time title="创建时间：2017-04-21 12:10:06" itemprop="dateCreated datePublished" datetime="2017-04-21T12:10:06+08:00">2017-04-21</time>
-            
-
-            
-              
-
-              
-                
-                <span class="post-meta-divider">|</span>
-                
-
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">更新于</span>
-                
-                <time title="修改时间：2019-06-25 14:14:33" itemprop="dateModified" datetime="2019-06-25T14:14:33+08:00">2019-06-25</time>
-              
-            
-          </span>
-
-          
-            <span class="post-category">
-            
-              <span class="post-meta-divider">|</span>
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">分类于</span>
-              
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/尚未分类/" itemprop="url" rel="index"><span itemprop="name">尚未分类</span></a></span>
-
-                
-                
-              
-            </span>
-          
-
-          
-            
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
-        </div>
-      </header>
-    
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-            <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>
-
-          
-        
-      
-    </div>
-
-    
-
-    
-    
-    
-
-    
-
-    
-      
-    
-    
-
-    
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
   </section>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/4/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span>
+    <a class="extend prev" rel="prev" href="/page/4/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><a class="extend next" rel="next" href="/page/6/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -2201,7 +2257,7 @@
                 
                   <a href="/archives/">
                 
-                    <span class="site-state-item-count">50</span>
+                    <span class="site-state-item-count">51</span>
                     <span class="site-state-item-name">日志</span>
                   </a>
                 </div>
@@ -2248,7 +2304,9 @@
                     
                       
                     
-                    <span class="site-state-item-count">15</span>
+                      
+                    
+                    <span class="site-state-item-count">16</span>
                     <span class="site-state-item-name">分类</span>
                   </a>
                 </div>

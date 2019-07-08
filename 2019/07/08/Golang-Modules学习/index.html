@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.2">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.2">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.2">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.2" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.1.2',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: true,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="转载请注明出处：www.huamo.online  Modules概念一个module是相关Go package的一个集合。modules是源码交互和版本控制的单元。go命令直接支持使用模块，包括记录和解析对其他模块的依赖。modules替代了以前基于GOPATH的方式来指定在构建时使用哪些源文件。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Golang Modules学习">
+<meta property="og:url" content="http://www.huamo.online/2019/07/08/Golang-Modules学习/index.html">
+<meta property="og:site_name" content="花木兰">
+<meta property="og:description" content="转载请注明出处：www.huamo.online  Modules概念一个module是相关Go package的一个集合。modules是源码交互和版本控制的单元。go命令直接支持使用模块，包括记录和解析对其他模块的依赖。modules替代了以前基于GOPATH的方式来指定在构建时使用哪些源文件。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-07-08T13:28:25.567Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Golang Modules学习">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online  Modules概念一个module是相关Go package的一个集合。modules是源码交互和版本控制的单元。go命令直接支持使用模块，包括记录和解析对其他模块的依赖。modules替代了以前基于GOPATH的方式来指定在构建时使用哪些源文件。">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="http://www.huamo.online/2019/07/08/Golang-Modules学习/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Golang Modules学习 | 花木兰</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">花木兰</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://www.huamo.online/2019/07/08/Golang-Modules学习/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="runningbar">
+      <meta itemprop="description" content="分享即收获">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="花木兰">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Golang Modules学习
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2019-07-08 21:27:34 / 修改时间：21:28:25" itemprop="dateCreated datePublished" datetime="2019-07-08T21:27:34+08:00">2019-07-08</time>
+            
+
+            
+              
+
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/golang/" itemprop="url" rel="index"><span itemprop="name">golang </span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+<h1 id="Modules概念"><a href="#Modules概念" class="headerlink" title="Modules概念"></a><code>Modules</code>概念</h1><p>一个<code>module</code>是相关Go package的一个集合。<code>modules</code>是源码交互和版本控制的单元。<code>go</code>命令直接支持使用模块，包括记录和解析对其他模块的依赖。<strong><code>modules</code>替代了以前基于<code>GOPATH</code>的方式来指定在构建时使用哪些源文件。</strong></p>
+<a id="more"></a>
+
+<p>Go 1.11开始初步支持<code>modules</code>这一崭新概念，它统一支持包依赖的版本和路径，版本依赖信息变得轻量而且明确，构建也变得更加可靠和可复现。</p>
+<p>module作为一个集合存放在一个以<code>go.mod</code>文件为根的文件树中。<code>go.mod</code>文件定义了模块的<code>module path</code>，这个路径同时也是相对于根目录($GOPATH/src)的<code>import path</code>。还定义了这个模块的<code>依赖需求</code>，即为了完成构建需要用到的其它模块。每一个依赖需求都写作一个模块路径加上一个特定的<a href="https://semver.org/lang/zh-CN/" target="_blank" rel="noopener">语义化版本</a></p>
+<p>从Go 1.11开始，如果一个工程目录在<code>$GOPATH/src</code>外面，且当前目录或任何父目录有<code>go.mod</code>文件，那么<code>go</code>命令就会启用<code>modules</code>（如果工程在<code>$GOPATH/src</code>内部，为了兼容性，<code>go</code>命令依然使用旧的基于<code>GOPATH</code>构建模式，即使找到了<code>go.mod</code>文件）。从Go 1.13开始，<code>module</code>模式会作为所有开发的默认构建模式。</p>
+<h2 id="module的初步支持"><a href="#module的初步支持" class="headerlink" title="module的初步支持"></a><code>module</code>的初步支持</h2><p>Go 1.11初步支持<code>modules</code>，包含了一个新的可以感知<code>module</code>的<code>go get</code>命令。开发组会一直保持更新，直到官方宣布正式支持以后，然后就会移除掉<code>GOPATH</code>构建模式以及老的<code>go get</code>命令。</p>
+<p>最快最简单的使用新版<code>module</code>构建项目的方式是：将工程目录移到<code>$GOPATH/src</code>外面，并在目录下创建一个<code>go.mod</code>文件，然后在目录下运行<code>go</code>命令。</p>
+<p>为了更细粒度的控制，Go 1.11提供了一个临时的环境变量<code>GO111MODULE</code>。可以设置为3个值：<code>off, on, auto(默认值)</code>。如果<code>GO111MODULE=off</code>，那么<code>go</code>命令永不使用<code>module</code>支持，而是像以前一样查看<code>vendor</code>文件夹和<code>$GOPATH</code>目录来寻找依赖（这被称为<code>GOPATH</code>模式）。如果<code>GO111MODULE=on</code>，那么<code>go</code>命令就会要求使用<code>modules</code>特性，而永不再考虑<code>$GOPATH</code>（这被称为<code>module-aware</code>模式）。如果<code>GO111MODULE=auto</code>或未设置，<code>go</code>命令则会依据当前目录来启用或关闭<code>module</code>特性。仅当工程目录在<code>$GOPATH/src</code>外面且本身有<code>go.mod</code>文件或父目录有这个文件，才启用<code>module</code>支持。</p>
+<p>在<code>module-aware</code>模式下，构建时<code>$GOPATH</code>不再定义import的含义，但它会存储下载好的依赖（存在<code>$GOPATH/pkg/mod</code>），以及安装的可执行命令（一般存在$GOPATH/bin，除非系统设置了$GOBIN）</p>
+<h1 id="创建一个新的module"><a href="#创建一个新的module" class="headerlink" title="创建一个新的module"></a>创建一个新的<code>module</code></h1><ul>
+<li>将工程目录创建在<code>$GOPATH/src</code>外面，正常编写代码文件和单元测试代码文件</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">pwd</span></span><br><span class="line">~/outgopath/gopher/hello</span><br><span class="line">$ ls</span><br><span class="line">hello.go hello_test.go</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>将工程目录作为<code>module</code>的根目录</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ go mod init gopher/hello</span><br><span class="line">go: creating new go.mod: module gopher/hello</span><br><span class="line">$ <span class="built_in">pwd</span></span><br><span class="line">~/outgopath/gopher/hello</span><br><span class="line">$ ls</span><br><span class="line">go.mod hello.go hello_test.go</span><br><span class="line">$ cat go.mod</span><br><span class="line">module gopher/hello</span><br><span class="line"></span><br><span class="line">go 1.12</span><br></pre></td></tr></table></figure>
+
+<p><strong><code>go.mod</code>文件只会出现在<code>module</code>的根目录中。子目录中<code>package</code>的import路径是<code>module</code>路径加上子目录路径即可，且子目录不需要再运行<code>go mod init</code>命令。例如<code>hello/</code>有个子目录<code>world</code>，那么它的import路径就是<code>gopher/hello/world</code>。</strong></p>
+<h1 id="添加一个依赖"><a href="#添加一个依赖" class="headerlink" title="添加一个依赖"></a>添加一个依赖</h1><p><strong>创造Go <code>modules</code>的主要目的就是为了提高使用其他代码的体验（即添加依赖）</strong></p>
+<p>当遇到<code>import</code>了一个<code>go.mod</code>中没有提供的<code>package</code>，<code>go</code>命令就会自动寻找包含这个<code>package</code>的<code>module</code>并将其添加到<code>go.mod</code>中，使用<code>latest</code>版本。所谓的<code>latest</code>规则为：</p>
+<ol>
+<li><p>最新，打了tag标志稳定的版本（非预发行版本），即<code>x.y.z</code></p>
+</li>
+<li><p>如果没有，则选最新，打了tag的预发行版本，即<code>x.y.z-abc1</code></p>
+</li>
+<li><p>如果还没有，则选最新，没有打tag的版本。</p>
+</li>
+</ol>
+<p><strong>只有直接引用的依赖才记录在<code>go.mod</code>文件中。但是使用<code>go get</code>升级了的依赖，即使是非直接引用，也会记录在<code>go.mod</code>中，下文会说</strong></p>
+<p>检查当前模块和它的所有依赖：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ go list -m all</span><br><span class="line">gopher/hello //主module</span><br><span class="line">golang.org/x/text v0.0.0-20170915032832-14c0d48ead0c</span><br><span class="line">rsc.io/quote v1.5.2</span><br><span class="line">rsc.io/sampler v1.3.0</span><br></pre></td></tr></table></figure>
+
+<p>还可以使用<code>go list -m rsc.io...</code>进行模糊搜索</p>
+<blockquote>
+<p>依赖的显示是根据<code>module</code>路径排序</p>
+</blockquote>
+<p>其中<code>golang.org/x/text</code>的是<code>go</code>命令为没有打tag的提交生成的<a href="https://golang.org/cmd/go/#hdr-Pseudo_versions" target="_blank" rel="noopener"><strong>伪版本</strong></a></p>
+<p><code>go</code>命令还维护了一个<code>go.sum</code>文件，包含了每个依赖的<a href="https://golang.org/cmd/go/#hdr-Module_downloading_and_verification" target="_blank" rel="noopener"><strong>加密哈希校验和</strong></a>。以此确保以后的下载依赖和初次下载的内容完全一致。</p>
+<p><strong><code>go.mod</code>和<code>go.sum</code>都需要检入到版本控制中。</strong></p>
+<h1 id="升级依赖"><a href="#升级依赖" class="headerlink" title="升级依赖"></a>升级依赖</h1><p>可以使用<code>go get -v golang.org/x/text</code>升级这个依赖，这里没有指定升级到的版本，就会默认升级到<code>@latest</code>。完成之后，<code>go.mod</code>就会新增记录，<code>go.sum</code>也会随之更新。即使是非直接依赖，此时也会记录在<code>go.mod</code>中</p>
+<p>也可以使用<code>go get -v rsc.io/sampler@v1.3.1</code>指定升级版本。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ go get -v rsc.io/sampler@v1.3.1</span><br><span class="line">$ go get -v golang.org/x/text</span><br><span class="line">$ cat go.mod</span><br><span class="line">module gopher/hello</span><br><span class="line"></span><br><span class="line">go 1.12</span><br><span class="line"></span><br><span class="line">require (</span><br><span class="line">	golang.org/x/text v0.3.0 // indirect</span><br><span class="line">	rsc.io/quote v1.5.2</span><br><span class="line">	rsc.io/sampler v1.3.1 // indirect</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<h1 id="增加一个新的主版本依赖"><a href="#增加一个新的主版本依赖" class="headerlink" title="增加一个新的主版本依赖"></a>增加一个新的主版本依赖</h1><p>就像以太坊中遇到的那样，<code>whisper</code>有v5和v6两个版本，分别对应两个目录，现在我终于明白了为什么会这样分开冗余代码，因为主版本的变更一般都是对外接口不再向后兼容，但是对于一个已经存在的<code>module</code>，别人有可能还在依赖旧版本代码，所以只能以主版本号为文件夹名开辟新的<code>module path</code>，这种惯例称为<a href="https://research.swtch.com/vgo-import" target="_blank" rel="noopener"><strong>语义化导入版本</strong></a></p>
+<p>所以，在go import中，可以同时依赖一个模块的多个主版本，例如：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ vim hell.go</span><br><span class="line">...</span><br><span class="line">import (</span><br><span class="line">    <span class="string">"rsc.io/quote"</span></span><br><span class="line">    quoteV3 <span class="string">"rsc.io/quote/v3"</span></span><br><span class="line">)</span><br><span class="line">...</span><br><span class="line">$ go list -m rsc.io/q...</span><br><span class="line">rsc.io/quote v1.5.2</span><br><span class="line">rsc.io/quote/v3 v3.1.0</span><br></pre></td></tr></table></figure>
+
+<p>这样就可以既使用部分新特性，又能和老版本进行兼容。</p>
+<h1 id="移除未使用的依赖"><a href="#移除未使用的依赖" class="headerlink" title="移除未使用的依赖"></a>移除未使用的依赖</h1><p><code>go build</code>或者<code>go test</code>这种命令可以快速发现缺少了什么，但并不能安全的告知什么可以移除，因为移除一个依赖<strong>需要在检查完这个<code>module</code>下所有的包之后才能做，包括这些包的所有可能编译参数组合都检查通过才行。</strong></p>
+<p><code>go mod tidy</code>可以完成这个使命</p>
+<h1 id="Go包版本提议"><a href="#Go包版本提议" class="headerlink" title="Go包版本提议"></a>Go包版本提议</h1><h2 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h2><p>8年前，Go开发组推出了<code>goinstall</code>（最后演化为<code>go get</code>），其去中心化，类似URL的导入路径对Go开发者颇为熟悉。当<code>goinstall</code>发布之后，人们最先询问的问题便是<strong>如何纳入版本信息</strong>。Go开发组承认：<strong>We admitted we didn’t know</strong>。长期以来，他们都认为包版本的问题最好是通过一个插件工具来解决，他们也鼓励社区创造出一个这样的工具。于是很多工具用了很多不同方式来解决这个问题，到了2016中间的时候，市面上已经出现了太多解决方案，开发组认为需要选用一个单一的，官方的工具结束这个局面。</p>
+<h1 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h1><ul>
+<li><p><a href="https://golang.org/cmd/go/#hdr-Modules__module_versions__and_more" target="_blank" rel="noopener">https://golang.org/cmd/go/#hdr-Modules__module_versions__and_more</a></p>
+</li>
+<li><p><a href="https://golang.org/doc/go1.11#modules" target="_blank" rel="noopener">https://golang.org/doc/go1.11#modules</a></p>
+</li>
+<li><p><a href="https://blog.golang.org/versioning-proposal" target="_blank" rel="noopener">https://blog.golang.org/versioning-proposal</a></p>
+</li>
+<li><p>语义化版本：<a href="https://semver.org/lang/zh-CN/" target="_blank" rel="noopener">https://semver.org/lang/zh-CN/</a></p>
+</li>
+<li><p><a href="https://blog.golang.org/using-go-modules" target="_blank" rel="noopener">https://blog.golang.org/using-go-modules</a></p>
+</li>
+<li><p><a href="https://golang.org/cmd/go/#hdr-Preliminary_module_support" target="_blank" rel="noopener">https://golang.org/cmd/go/#hdr-Preliminary_module_support</a></p>
+</li>
+<li><p><a href="https://golang.org/cmd/go/#hdr-Pseudo_versions" target="_blank" rel="noopener">https://golang.org/cmd/go/#hdr-Pseudo_versions</a></p>
+</li>
+<li><p><a href="https://golang.org/cmd/go/#hdr-Module_downloading_and_verification" target="_blank" rel="noopener">https://golang.org/cmd/go/#hdr-Module_downloading_and_verification</a></p>
+</li>
+<li><p><a href="https://research.swtch.com/vgo-import" target="_blank" rel="noopener">https://research.swtch.com/vgo-import</a></p>
+</li>
+</ul>
+<blockquote>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+</blockquote>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/06/27/golang汇编语言/" rel="next" title="golang汇编语言">
+                <i class="fa fa-chevron-left"></i> golang汇编语言
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">runningbar</p>
+              <div class="site-description motion-element" itemprop="description">分享即收获</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">51</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">16</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Modules概念"><span class="nav-number">1.</span> <span class="nav-text">Modules概念</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#module的初步支持"><span class="nav-number">1.1.</span> <span class="nav-text">module的初步支持</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#创建一个新的module"><span class="nav-number">2.</span> <span class="nav-text">创建一个新的module</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#添加一个依赖"><span class="nav-number">3.</span> <span class="nav-text">添加一个依赖</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#升级依赖"><span class="nav-number">4.</span> <span class="nav-text">升级依赖</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#增加一个新的主版本依赖"><span class="nav-number">5.</span> <span class="nav-text">增加一个新的主版本依赖</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#移除未使用的依赖"><span class="nav-number">6.</span> <span class="nav-text">移除未使用的依赖</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Go包版本提议"><span class="nav-number">7.</span> <span class="nav-text">Go包版本提议</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#介绍"><span class="nav-number">7.1.</span> <span class="nav-text">介绍</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考链接"><span class="nav-number">8.</span> <span class="nav-text">参考链接</span></a></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">runningbar</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.1.2</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=3.4.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.2"></script>
+
+  <script src="/js/motion.js?v=7.1.2"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.2"></script>
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.2"></script>
+<script src="/js/post-details.js?v=7.1.2"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.2"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
