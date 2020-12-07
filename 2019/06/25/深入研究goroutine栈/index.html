@@ -98,12 +98,12 @@
 
 
 
-  <meta name="description" content="转载请注明出处：www.huamo.online  前言本文记录了自己深入理解goroutine栈布局的过程，潜入了一圈之后，发现底下的世界确实别有洞天，感觉很多东西都开阔明晰了许多。 内存布局是一个强相关于操作系统，处理器，机器架构的领域，和语言关系反而会少一些。只是golang诞生于plan9，在机器汇编层面，总是有一些自己特立独行的惯例规约，所以用golang切入，也是一个不错的契机。本文">
+  <meta name="description" content="转载请注明出处：www.huamo.online字节杭州 求贤若渴：  https://job.toutiao.com/s/JXTdQaH https://job.toutiao.com/s/JXTMWW3 https://job.toutiao.com/s/JXT1tpC https://job.toutiao.com/s/JXTdu6h   前言本文记录了自己深入理解goroutine栈布局">
 <meta property="og:type" content="article">
 <meta property="og:title" content="深入研究goroutine栈">
 <meta property="og:url" content="http://www.huamo.online/2019/06/25/深入研究goroutine栈/index.html">
 <meta property="og:site_name" content="花木兰">
-<meta property="og:description" content="转载请注明出处：www.huamo.online  前言本文记录了自己深入理解goroutine栈布局的过程，潜入了一圈之后，发现底下的世界确实别有洞天，感觉很多东西都开阔明晰了许多。 内存布局是一个强相关于操作系统，处理器，机器架构的领域，和语言关系反而会少一些。只是golang诞生于plan9，在机器汇编层面，总是有一些自己特立独行的惯例规约，所以用golang切入，也是一个不错的契机。本文">
+<meta property="og:description" content="转载请注明出处：www.huamo.online字节杭州 求贤若渴：  https://job.toutiao.com/s/JXTdQaH https://job.toutiao.com/s/JXTMWW3 https://job.toutiao.com/s/JXT1tpC https://job.toutiao.com/s/JXTdu6h   前言本文记录了自己深入理解goroutine栈布局">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/x86%E5%AF%84%E5%AD%98%E5%99%A8%E5%90%8D%E7%A7%B0%E5%AF%BB%E5%9D%80.png">
 <meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/x86%E5%AF%84%E5%AD%98%E5%99%A8.png">
@@ -115,10 +115,10 @@
 <meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/Golang%E5%88%86%E6%AE%B5%E6%A0%88%E5%9B%9E%E6%BA%AF%E6%9C%BA%E7%90%86.png">
 <meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/goroutine%E6%A0%88StackGuard.png">
 <meta property="og:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/golang%E6%A0%88%E6%BA%A2%E5%87%BA%E6%A3%80%E6%B5%8B%E9%80%BB%E8%BE%91.png">
-<meta property="og:updated_time" content="2019-06-27T07:35:05.276Z">
+<meta property="og:updated_time" content="2020-12-07T07:35:55.502Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="深入研究goroutine栈">
-<meta name="twitter:description" content="转载请注明出处：www.huamo.online  前言本文记录了自己深入理解goroutine栈布局的过程，潜入了一圈之后，发现底下的世界确实别有洞天，感觉很多东西都开阔明晰了许多。 内存布局是一个强相关于操作系统，处理器，机器架构的领域，和语言关系反而会少一些。只是golang诞生于plan9，在机器汇编层面，总是有一些自己特立独行的惯例规约，所以用golang切入，也是一个不错的契机。本文">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online字节杭州 求贤若渴：  https://job.toutiao.com/s/JXTdQaH https://job.toutiao.com/s/JXTMWW3 https://job.toutiao.com/s/JXT1tpC https://job.toutiao.com/s/JXTdu6h   前言本文记录了自己深入理解goroutine栈布局">
 <meta name="twitter:image" content="http://www.huamo.online/source_code/image/%E6%B7%B1%E5%85%A5%E7%A0%94%E7%A9%B6goroutine%E6%A0%88img/x86%E5%AF%84%E5%AD%98%E5%99%A8%E5%90%8D%E7%A7%B0%E5%AF%BB%E5%9D%80.png">
 
 
@@ -360,7 +360,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-06-27 15:35:05" itemprop="dateModified" datetime="2019-06-27T15:35:05+08:00">2019-06-27</time>
+                <time title="修改时间：2020-12-07 15:35:55" itemprop="dateModified" datetime="2020-12-07T15:35:55+08:00">2020-12-07</time>
               
             
           </span>
@@ -413,7 +413,13 @@
 
       
         <blockquote>
-<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a><br>字节杭州 求贤若渴：</p>
+<ol>
+<li><a href="https://job.toutiao.com/s/JXTdQaH" target="_blank" rel="noopener">https://job.toutiao.com/s/JXTdQaH</a></li>
+<li><a href="https://job.toutiao.com/s/JXTMWW3" target="_blank" rel="noopener">https://job.toutiao.com/s/JXTMWW3</a></li>
+<li><a href="https://job.toutiao.com/s/JXT1tpC" target="_blank" rel="noopener">https://job.toutiao.com/s/JXT1tpC</a></li>
+<li><a href="https://job.toutiao.com/s/JXTdu6h" target="_blank" rel="noopener">https://job.toutiao.com/s/JXTdu6h</a></li>
+</ol>
 </blockquote>
 <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>本文记录了自己深入理解<code>goroutine</code>栈布局的过程，潜入了一圈之后，发现底下的世界确实别有洞天，感觉很多东西都开阔明晰了许多。</p>
 <p>内存布局是一个强相关于操作系统，处理器，机器架构的领域，和语言关系反而会少一些。只是<code>golang</code>诞生于<code>plan9</code>，在机器汇编层面，总是有一些自己特立独行的惯例规约，所以用<code>golang</code>切入，也是一个不错的契机。本文以<code>x86</code>架构为准进行讲解，都走了一遍，才发现其实都是在搞清楚一个话题：调用惯例。有兴趣的可以搜<code>calling convention</code></p>
@@ -886,7 +892,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
   <span class="with-love" id="animate">
     <i class="fa fa-user"></i>
   </span>

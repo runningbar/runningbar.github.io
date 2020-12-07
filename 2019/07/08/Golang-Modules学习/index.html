@@ -98,17 +98,17 @@
 
 
 
-  <meta name="description" content="转载请注明出处：www.huamo.online  Modules概念一个module是相关Go package的一个集合。modules是源码交互和版本控制的单元。go命令直接支持使用模块，包括记录和解析对其他模块的依赖。modules替代了以前基于GOPATH的方式来指定在构建时使用哪些源文件。">
+  <meta name="description" content="转载请注明出处：www.huamo.online字节杭州 求贤若渴：  https://job.toutiao.com/s/JXTdQaH https://job.toutiao.com/s/JXTMWW3 https://job.toutiao.com/s/JXT1tpC https://job.toutiao.com/s/JXTdu6h   Modules概念一个module是相关Go pa">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Golang Modules学习">
 <meta property="og:url" content="http://www.huamo.online/2019/07/08/Golang-Modules学习/index.html">
 <meta property="og:site_name" content="花木兰">
-<meta property="og:description" content="转载请注明出处：www.huamo.online  Modules概念一个module是相关Go package的一个集合。modules是源码交互和版本控制的单元。go命令直接支持使用模块，包括记录和解析对其他模块的依赖。modules替代了以前基于GOPATH的方式来指定在构建时使用哪些源文件。">
+<meta property="og:description" content="转载请注明出处：www.huamo.online字节杭州 求贤若渴：  https://job.toutiao.com/s/JXTdQaH https://job.toutiao.com/s/JXTMWW3 https://job.toutiao.com/s/JXT1tpC https://job.toutiao.com/s/JXTdu6h   Modules概念一个module是相关Go pa">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2019-07-08T13:28:25.567Z">
+<meta property="og:updated_time" content="2020-12-07T07:34:51.555Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Golang Modules学习">
-<meta name="twitter:description" content="转载请注明出处：www.huamo.online  Modules概念一个module是相关Go package的一个集合。modules是源码交互和版本控制的单元。go命令直接支持使用模块，包括记录和解析对其他模块的依赖。modules替代了以前基于GOPATH的方式来指定在构建时使用哪些源文件。">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online字节杭州 求贤若渴：  https://job.toutiao.com/s/JXTdQaH https://job.toutiao.com/s/JXTMWW3 https://job.toutiao.com/s/JXT1tpC https://job.toutiao.com/s/JXTdu6h   Modules概念一个module是相关Go pa">
 
 
 
@@ -332,12 +332,24 @@
                 
               
 
-              <time title="创建时间：2019-07-08 21:27:34 / 修改时间：21:28:25" itemprop="dateCreated datePublished" datetime="2019-07-08T21:27:34+08:00">2019-07-08</time>
+              <time title="创建时间：2019-07-08 21:27:34" itemprop="dateCreated datePublished" datetime="2019-07-08T21:27:34+08:00">2019-07-08</time>
             
 
             
               
 
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2020-12-07 15:34:51" itemprop="dateModified" datetime="2020-12-07T15:34:51+08:00">2020-12-07</time>
               
             
           </span>
@@ -390,13 +402,19 @@
 
       
         <blockquote>
-<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a><br>字节杭州 求贤若渴：</p>
+<ol>
+<li><a href="https://job.toutiao.com/s/JXTdQaH" target="_blank" rel="noopener">https://job.toutiao.com/s/JXTdQaH</a></li>
+<li><a href="https://job.toutiao.com/s/JXTMWW3" target="_blank" rel="noopener">https://job.toutiao.com/s/JXTMWW3</a></li>
+<li><a href="https://job.toutiao.com/s/JXT1tpC" target="_blank" rel="noopener">https://job.toutiao.com/s/JXT1tpC</a></li>
+<li><a href="https://job.toutiao.com/s/JXTdu6h" target="_blank" rel="noopener">https://job.toutiao.com/s/JXTdu6h</a></li>
+</ol>
 </blockquote>
 <h1 id="Modules概念"><a href="#Modules概念" class="headerlink" title="Modules概念"></a><code>Modules</code>概念</h1><p>一个<code>module</code>是相关Go package的一个集合。<code>modules</code>是源码交互和版本控制的单元。<code>go</code>命令直接支持使用模块，包括记录和解析对其他模块的依赖。<strong><code>modules</code>替代了以前基于<code>GOPATH</code>的方式来指定在构建时使用哪些源文件。</strong></p>
 <a id="more"></a>
 
 <p>Go 1.11开始初步支持<code>modules</code>这一崭新概念，它统一支持包依赖的版本和路径，版本依赖信息变得轻量而且明确，构建也变得更加可靠和可复现。</p>
-<p>module作为一个集合存放在一个以<code>go.mod</code>文件为根的文件树中。<code>go.mod</code>文件定义了模块的<code>module path</code>，这个路径同时也是相对于根目录($GOPATH/src)的<code>import path</code>。还定义了这个模块的<code>依赖需求</code>，即为了完成构建需要用到的其它模块。每一个依赖需求都写作一个模块路径加上一个特定的<a href="https://semver.org/lang/zh-CN/" target="_blank" rel="noopener">语义化版本</a></p>
+<p>module作为一个集合存放在一个以<code>go.mod</code>文件为根的文件树中。<code>go.mod</code>文件定义了模块的<code>module path</code>，这个路径同时也是相对于根目录(<code>$GOPATH/src</code>)的<code>import path</code>。还定义了这个模块的<code>依赖需求</code>，即为了完成构建需要用到的其它模块。每一个依赖需求都写作一个模块路径加上一个特定的<a href="https://semver.org/lang/zh-CN/" target="_blank" rel="noopener">语义化版本</a></p>
 <p>从Go 1.11开始，如果一个工程目录在<code>$GOPATH/src</code>外面，且当前目录或任何父目录有<code>go.mod</code>文件，那么<code>go</code>命令就会启用<code>modules</code>（如果工程在<code>$GOPATH/src</code>内部，为了兼容性，<code>go</code>命令依然使用旧的基于<code>GOPATH</code>构建模式，即使找到了<code>go.mod</code>文件）。从Go 1.13开始，<code>module</code>模式会作为所有开发的默认构建模式。</p>
 <h2 id="module的初步支持"><a href="#module的初步支持" class="headerlink" title="module的初步支持"></a><code>module</code>的初步支持</h2><p>Go 1.11初步支持<code>modules</code>，包含了一个新的可以感知<code>module</code>的<code>go get</code>命令。开发组会一直保持更新，直到官方宣布正式支持以后，然后就会移除掉<code>GOPATH</code>构建模式以及老的<code>go get</code>命令。</p>
 <p>最快最简单的使用新版<code>module</code>构建项目的方式是：将工程目录移到<code>$GOPATH/src</code>外面，并在目录下创建一个<code>go.mod</code>文件，然后在目录下运行<code>go</code>命令。</p>
@@ -686,7 +704,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
   <span class="with-love" id="animate">
     <i class="fa fa-user"></i>
   </span>

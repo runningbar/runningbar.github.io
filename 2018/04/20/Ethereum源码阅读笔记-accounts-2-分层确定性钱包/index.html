@@ -98,17 +98,17 @@
 
 
 
-  <meta name="description" content="转载请注明出处：www.huamo.online  分层确定性钱包(HD Wallets)在使用钱包，以及看以太坊代码时，都会碰到m/44&amp;#39;/60&amp;#39;/0&amp;#39;/0这样奇怪的字符串，以及派生路径（DerivationPath）这样的术语，决定搞个明白，随后发现这些奇怪的东西都与一个名词有关：分层确定性钱包">
+  <meta name="description" content="转载请注明出处：www.huamo.online字节杭州 求贤若渴：  https://job.toutiao.com/s/JXTdQaH https://job.toutiao.com/s/JXTMWW3 https://job.toutiao.com/s/JXT1tpC https://job.toutiao.com/s/JXTdu6h   分层确定性钱包(HD Wallets)在使用钱包，">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Ethereum源码阅读笔记-accounts(2)-分层确定性钱包">
 <meta property="og:url" content="http://www.huamo.online/2018/04/20/Ethereum源码阅读笔记-accounts-2-分层确定性钱包/index.html">
 <meta property="og:site_name" content="花木兰">
-<meta property="og:description" content="转载请注明出处：www.huamo.online  分层确定性钱包(HD Wallets)在使用钱包，以及看以太坊代码时，都会碰到m/44&amp;#39;/60&amp;#39;/0&amp;#39;/0这样奇怪的字符串，以及派生路径（DerivationPath）这样的术语，决定搞个明白，随后发现这些奇怪的东西都与一个名词有关：分层确定性钱包">
+<meta property="og:description" content="转载请注明出处：www.huamo.online字节杭州 求贤若渴：  https://job.toutiao.com/s/JXTdQaH https://job.toutiao.com/s/JXTMWW3 https://job.toutiao.com/s/JXT1tpC https://job.toutiao.com/s/JXTdu6h   分层确定性钱包(HD Wallets)在使用钱包，">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2019-06-20T02:48:01.966Z">
+<meta property="og:updated_time" content="2020-12-07T07:36:33.428Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Ethereum源码阅读笔记-accounts(2)-分层确定性钱包">
-<meta name="twitter:description" content="转载请注明出处：www.huamo.online  分层确定性钱包(HD Wallets)在使用钱包，以及看以太坊代码时，都会碰到m/44&amp;#39;/60&amp;#39;/0&amp;#39;/0这样奇怪的字符串，以及派生路径（DerivationPath）这样的术语，决定搞个明白，随后发现这些奇怪的东西都与一个名词有关：分层确定性钱包">
+<meta name="twitter:description" content="转载请注明出处：www.huamo.online字节杭州 求贤若渴：  https://job.toutiao.com/s/JXTdQaH https://job.toutiao.com/s/JXTMWW3 https://job.toutiao.com/s/JXT1tpC https://job.toutiao.com/s/JXTdu6h   分层确定性钱包(HD Wallets)在使用钱包，">
 
 
 
@@ -349,7 +349,7 @@
                 
                   <span class="post-meta-item-text">更新于</span>
                 
-                <time title="修改时间：2019-06-20 10:48:01" itemprop="dateModified" datetime="2019-06-20T10:48:01+08:00">2019-06-20</time>
+                <time title="修改时间：2020-12-07 15:36:33" itemprop="dateModified" datetime="2020-12-07T15:36:33+08:00">2020-12-07</time>
               
             
           </span>
@@ -402,7 +402,13 @@
 
       
         <blockquote>
-<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a></p>
+<p>转载请注明出处：<a href="http://www.huamo.online/">www.huamo.online</a><br>字节杭州 求贤若渴：</p>
+<ol>
+<li><a href="https://job.toutiao.com/s/JXTdQaH" target="_blank" rel="noopener">https://job.toutiao.com/s/JXTdQaH</a></li>
+<li><a href="https://job.toutiao.com/s/JXTMWW3" target="_blank" rel="noopener">https://job.toutiao.com/s/JXTMWW3</a></li>
+<li><a href="https://job.toutiao.com/s/JXT1tpC" target="_blank" rel="noopener">https://job.toutiao.com/s/JXT1tpC</a></li>
+<li><a href="https://job.toutiao.com/s/JXTdu6h" target="_blank" rel="noopener">https://job.toutiao.com/s/JXTdu6h</a></li>
+</ol>
 </blockquote>
 <h1 id="分层确定性钱包-HD-Wallets"><a href="#分层确定性钱包-HD-Wallets" class="headerlink" title="分层确定性钱包(HD Wallets)"></a>分层确定性钱包(<code>HD Wallets</code>)</h1><p>在使用钱包，以及看以太坊代码时，都会碰到<code>m/44&#39;/60&#39;/0&#39;/0</code>这样奇怪的字符串，以及派生路径（<code>DerivationPath</code>）这样的术语，决定搞个明白，随后发现这些奇怪的东西都与一个名词有关：<strong>分层确定性钱包</strong><a id="more"></a></p>
 <p><code>分层确定性钱包</code>的概念最初来源于<code>bitcoin</code>，出自<code>BIP-0032</code>。其英文叫做<code>Hierarchical Deterministic Wallets</code>，简称为<code>HD Wallets</code>。<strong>一个分层确定性钱包可以部分或全部共享给不同的系统，每一部分都拥有或不拥有花费数字货币的能力。</strong></p>
@@ -837,7 +843,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
   <span class="with-love" id="animate">
     <i class="fa fa-user"></i>
   </span>
